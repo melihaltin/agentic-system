@@ -59,21 +59,31 @@ Happy shopping! 🛍️"""
 @tool
 def generate_promo_code(
     order_id: str = "",
+    customer_type: str = "regular",
 ) -> Dict[str, Any]:
     """
     Generates a promo code for the customer and automatically sends it via SMS.
 
     Args:
         order_id: Customer's order ID (optional).
+        customer_type: Customer type (regular, vip, new).
 
     Returns:
         A dictionary containing the generated promo code details.
     """
+    print(f"🛠️ generate_promo_code tool called. Customer type: {customer_type}")
 
     phone_number = "+31687611451"
 
-    discount = random.randint(10, 20)
-    prefix = "SAVE"
+    if customer_type == "vip":
+        discount = random.randint(25, 40)
+        prefix = "VIP"
+    elif customer_type == "new":
+        discount = random.randint(15, 25)
+        prefix = "NEW"
+    else:
+        discount = random.randint(10, 20)
+        prefix = "SAVE"
 
     suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     promo_code = f"{prefix}{suffix}"
@@ -82,6 +92,7 @@ def generate_promo_code(
         "promo_code": promo_code,
         "discount_percent": discount,
         "order_id": order_id or "N/A",
+        "customer_type": customer_type,
         "valid_until": "2025-12-31",
         "generated_at": datetime.now().isoformat(),
     }
@@ -112,7 +123,7 @@ class TwilioOutboundAgent:
 
         # Configure LLM with tools
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-1.5-flash",
             temperature=0.2,
             api_key=os.getenv("GOOGLE_API_KEY"),
         )
@@ -129,24 +140,11 @@ class TwilioOutboundAgent:
             """Main node that talks to the customer and calls tools."""
             system_prompt = SystemMessage(
                 content="""
-          You are a professional and friendly customer service representative. You understand all languages and will continue in whichever language the customer speaks.
-
-    Scenario: The customer has left items in their shopping cart. You are reaching out to remind them and offer a special promo code if they are interested.
-
-    Your tasks:
-
-    Start by politely greeting the customer and mentioning that they left some items in their cart. Offer to give them a special promo code to complete their purchase.
-
-    Your first sentence must be:
-    "Hello, we noticed you left some items in your cart. Would you like me to send you a special promo code to complete your purchase?"
-
-    If the customer is interested, respond positively (e.g., “Great!” or “Perfect!”) and immediately call the generate_promo_code tool.
-
-    Always pass the phone_number parameter when calling the tool.
-
-    After the tool runs, say:
-    "I am sending your promo code and details via SMS. Have a great day!"
-    Then end the conversation.
+            You are a professional and friendly customer service representative. You understand all languages and will continue in whichever language the customer speaks. Your tasks:
+            1. Politely greet the customer and offer a special promo code.
+            2. If the customer is interested, respond positively (e.g., "Great!") and immediately call the `generate_promo_code` tool. 
+            3. Always pass the phone_number parameter when calling the tool.
+            4. After the tool runs, say "I am sending your promo code and details via SMS. Have a great day!" and end the conversation.
             """
             )
             # Add system prompt only at the start of the conversation

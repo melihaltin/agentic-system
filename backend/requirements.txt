@@ -42,7 +42,7 @@ aiohttp==3.10.8
 
 # Supabase Integration
 supabase==2.8.1
-postgrest==0.18.0
+postgrest>=0.17.0,<0.18.0
 realtime==2.0.4
 storage3==0.8.1
 gotrue==2.8.1

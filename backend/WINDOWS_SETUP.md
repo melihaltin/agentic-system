@@ -61,19 +61,35 @@ pip install -r requirements.txt
 
 ### 3. Supabase CLI Kurulumu
 
+**Windows'ta Supabase CLI Kurulumu:**
+
 ```powershell
-# npm ile kurulum (önerilen)
-npm install -g @supabase/cli
+# Scoop ile kurulum (önerilen - Windows)
+scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+scoop install supabase
 
 # Doğrulama
 supabase --version
 ```
 
-**Alternatif Kurulum Yöntemi** (npm çalışmazsa):
+**Alternatif Kurulum Yöntemi** (Scoop kurulu değilse):
+
+1. **Scoop Kurulumu** (önce bunu yapın):
+   ```powershell
+   # PowerShell'i yönetici olarak çalıştırın
+   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+   irm get.scoop.sh | iex
+   ```
+
+2. Ardından yukarıdaki Supabase kurulum komutlarını çalıştırın
+
+**Manual Kurulum** (diğer yöntemler çalışmazsa):
 
 1. [Supabase CLI Releases](https://github.com/supabase/cli/releases) sayfasından Windows sürümünü indirin
 2. `.exe` dosyasını `C:\Program Files\supabase\` klasörüne koyun
 3. Bu klasörü PATH'e ekleyin
+
+**NOT:** `npm install -g @supabase/cli` komutu artık desteklenmiyor. Yukarıdaki yöntemlerden birini kullanın.
 
 ### 4. Environment Dosyasını Hazırlayın
 
@@ -308,17 +324,17 @@ goto :end
 venv\Scripts\activate
 
 # 2. Supabase'i başlat
-supabase-local.bat start
+.\supabase-local.bat start
 
 # 3. Backend sunucusunu başlat
-dev.bat dev-supabase
+.\dev.bat dev-supabase
 ```
 
 ### 2. Alternatif: Tek Komutla
 
 ```powershell
 # Docker Desktop başlattıktan sonra:
-dev.bat supabase-local
+.\dev.bat supabase-local
 ```
 
 ### 3. Servislere Erişim
@@ -367,7 +383,18 @@ npm uninstall -g @supabase/cli
 npm install -g @supabase/cli
 ```
 
-#### 5. Permission Hatası
+#### 5. PowerShell "Command not found" Hatası
+```powershell
+# Hata: 'supabase-local.bat' is not recognized
+# Çözüm: Dosya adının önüne .\ ekleyin
+.\supabase-local.bat start
+.\dev.bat dev
+
+# veya execution policy değiştirin:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+#### 6. Permission Hatası
 ```powershell
 # PowerShell'i yönetici olarak çalıştırın
 # veya execution policy değiştirin:
@@ -408,30 +435,30 @@ cd C:\path\to\team-ai\backend
 venv\Scripts\activate
 
 # 4. Servisleri başlat
-dev.bat supabase-local
+.\dev.bat supabase-local
 ```
 
 ### Geliştirme Sırasında
 
 ```powershell
 # Test çalıştır
-dev.bat test
+.\dev.bat test
 
 # Yeni migration oluştur
 supabase migration new "migration_name"
 
 # Database'i reset et
-supabase-local.bat reset
+.\supabase-local.bat reset
 ```
 
 ### İş Bittiğinde
 
 ```powershell
 # Servisleri durdur
-dev.bat supabase-stop
+.\dev.bat supabase-stop
 
 # veya
-supabase-local.bat stop
+.\supabase-local.bat stop
 ```
 
 ## 📋 Ekstra Notlar

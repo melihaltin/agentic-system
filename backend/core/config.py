@@ -43,15 +43,17 @@ class Settings(BaseSettings):
         return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_server}:{self.postgres_port}/{self.postgres_db}"
 
     # CORS Configuration
-    allowed_hosts: List[str] = Field(
-        default=[
-            "http://localhost:3000",
-            "http://localhost:8000",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:8000",
-        ],
-        description="Allowed hosts for CORS",
+    allowed_hosts_str: str = Field(
+        default="http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000,http://127.0.0.1:8000",
+        description="Allowed hosts for CORS (comma-separated)",
+        alias="allowed_hosts"
     )
+
+    @computed_field
+    @property
+    def allowed_hosts(self) -> List[str]:
+        """Parse allowed hosts from comma-separated string."""
+        return [host.strip() for host in self.allowed_hosts_str.split(",")]
 
     # Redis Configuration (optional for caching)
     redis_url: str = Field(

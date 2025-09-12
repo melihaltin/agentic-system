@@ -57,8 +57,28 @@ backend/
 ### Prerequisites
 
 - Python 3.11+
-- PostgreSQL 15+
+- PostgreSQL 15+ (or use local Supabase)
+- Docker and Docker Compose
+- Node.js (for Supabase CLI)
 - Redis (optional, for caching)
+
+### Option 0: Local Supabase Development (Recommended for Testing)
+
+For development without cloud dependencies:
+
+1. **Setup local Supabase environment:**
+```bash
+cd backend
+chmod +x scripts/install-supabase-cli.sh dev.sh supabase-local.sh
+./dev.sh supabase-local
+```
+
+2. **Access your services:**
+   - FastAPI Backend: http://localhost:8000
+   - Supabase Studio: http://localhost:54323
+   - PostgreSQL: localhost:54322
+
+📖 **Detailed guide**: See [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for comprehensive local setup instructions.
 
 ### Option 1: Docker Development (Recommended)
 

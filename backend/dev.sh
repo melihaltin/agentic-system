@@ -106,17 +106,37 @@ case "$1" in
         print_status "Cache cleaned!"
         ;;
     
-    "setup")
-        print_status "Setting up development environment..."
-        pip install -r requirements.txt
-        print_status "Creating database migrations..."
-        alembic revision --autogenerate -m "Initial migration"
-        print_status "Running migrations..."
-        alembic upgrade head
-        print_status "Setup completed! You can now run: ./dev.sh dev"
-        ;;
-    
-    *)
+        "setup")
+            setup_dev_environment
+            ;;
+        "supabase-local")
+            echo "🚀 Starting local Supabase..."
+            ./supabase-local.sh full-start
+            ;;
+        "supabase-stop")
+            echo "🛑 Stopping local Supabase..."
+            ./supabase-local.sh stop
+            ;;
+        "supabase-test")
+            echo "🧪 Testing local Supabase..."
+            ./supabase-local.sh test
+            ;;
+        "dev-supabase")
+            echo "🔥 Starting development server with local Supabase..."
+            export USE_SUPABASE=true
+            export ENVIRONMENT=local
+            source venv/bin/activate
+            uvicorn main:app --reload --host 0.0.0.0 --port 8000
+            ;;
+        *)
+            echo "Unknown command: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+else
+    show_help
+fi    *)
         echo "Team AI Backend Development Helper"
         echo ""
         echo "Usage: $0 {command}"
@@ -134,6 +154,12 @@ case "$1" in
         echo "  lint                      Run type checking (mypy)"
         echo "  clean                     Clean cache files"
         echo "  setup                     Full development setup"
+        echo ""
+        echo "Supabase Commands:"
+        echo "  supabase-local            Start local Supabase"
+        echo "  supabase-stop             Stop local Supabase"
+        echo "  supabase-test             Test local Supabase"
+        echo "  dev-supabase              Start server with local Supabase"
         echo ""
         echo "Examples:"
         echo "  $0 setup                          # Initial setup"

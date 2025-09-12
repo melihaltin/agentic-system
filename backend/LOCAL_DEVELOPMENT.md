@@ -188,23 +188,26 @@ docker system prune -f
 ### Typical Development Session
 
 1. **Start services**:
+
    ```bash
    ./dev.sh supabase-local
    ```
 
 2. **Develop and test**:
+
    ```bash
    # Make code changes...
-   
+
    # Test changes
    ./dev.sh test
    ```
 
 3. **Database changes**:
+
    ```bash
    # Create migration
    supabase migration new "add_new_table"
-   
+
    # Apply migration
    ./supabase-local.sh migrate
    ```

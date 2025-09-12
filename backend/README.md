@@ -62,11 +62,17 @@ backend/
 - Node.js (for Supabase CLI)
 - Redis (optional, for caching)
 
+### Platform-Specific Guides
+
+- **🐧 macOS/Linux**: Follow the instructions below
+- **🪟 Windows**: See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed Windows installation guide
+
 ### Option 0: Local Supabase Development (Recommended for Testing)
 
 For development without cloud dependencies:
 
 1. **Setup local Supabase environment:**
+
 ```bash
 cd backend
 chmod +x scripts/install-supabase-cli.sh dev.sh supabase-local.sh
@@ -162,19 +168,23 @@ USE_SUPABASE_AUTH=false  # Set to true to use Supabase Auth instead of custom JW
 ## Supabase Setup (Optional)
 
 ### 1. Create a Supabase Project
+
 1. Go to [supabase.com](https://supabase.com) and create a new project
 2. Get your project URL and API keys from the project settings
 3. Add the keys to your `.env` file
 
 ### 2. Set up the Database Schema
+
 1. Go to the SQL Editor in your Supabase dashboard
 2. Run the SQL script from `sql/supabase_setup.sql`
 3. This will create the necessary tables, RLS policies, and functions
 
 ### 3. Configure Authentication Mode
+
 Set `USE_SUPABASE_AUTH=true` in your `.env` file to use Supabase authentication, or keep it `false` to use the custom JWT implementation.
 
 ### 4. Supabase Features Available
+
 - **Authentication**: User signup, login, logout with Supabase Auth
 - **Database**: User profiles stored in Supabase PostgreSQL
 - **Storage**: Avatar uploads to Supabase Storage
@@ -216,7 +226,7 @@ When running in development mode, API documentation is available at:
 - `POST /api/v1/auth/login` - Login with email/password
 - `POST /api/v1/auth/logout` - Logout (client-side token removal)
 
-### Authentication (Supabase) 
+### Authentication (Supabase)
 
 - `POST /api/v1/auth/supabase/register` - Register with Supabase Auth
 - `POST /api/v1/auth/supabase/login` - Login with Supabase Auth

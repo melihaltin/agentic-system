@@ -70,6 +70,14 @@ class Settings(BaseSettings):
     )
     max_page_size: int = Field(default=100, description="Maximum pagination page size")
 
+    # Supabase Configuration
+    supabase_url: str = Field(..., description="Supabase project URL")
+    supabase_anon_key: str = Field(..., description="Supabase anonymous key")
+    supabase_service_key: str = Field(..., description="Supabase service role key")
+    use_supabase_auth: bool = Field(
+        default=False, description="Use Supabase authentication instead of custom JWT"
+    )
+
     class Config:
         env_file = ".env"
         case_sensitive = False

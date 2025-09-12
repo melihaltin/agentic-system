@@ -6,6 +6,8 @@ A modern FastAPI backend application with PostgreSQL database, featuring user au
 
 - **FastAPI** framework with async/await support
 - **PostgreSQL** database with async SQLAlchemy 2.0
+- **Supabase Integration** with authentication, database, and storage
+- **Hybrid Authentication** - Choose between custom JWT or Supabase Auth
 - **JWT Authentication** with secure password hashing
 - **Alembic** database migrations
 - **Structured logging** with structlog
@@ -13,6 +15,8 @@ A modern FastAPI backend application with PostgreSQL database, featuring user au
 - **Docker** containerization support
 - **Comprehensive error handling** and validation
 - **User management** with role-based permissions
+- **File storage** with Supabase Storage
+- **Real-time capabilities** via Supabase
 - **API documentation** with automatic OpenAPI/Swagger
 
 ## Project Structure
@@ -127,7 +131,35 @@ POSTGRES_DB=team_ai_db
 
 # CORS Configuration
 ALLOWED_HOSTS=http://localhost:3000,http://localhost:8000
+
+# Supabase Configuration (optional)
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-anon-key-here
+SUPABASE_SERVICE_KEY=your-service-role-key-here
+USE_SUPABASE_AUTH=false  # Set to true to use Supabase Auth instead of custom JWT
 ```
+
+## Supabase Setup (Optional)
+
+### 1. Create a Supabase Project
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Get your project URL and API keys from the project settings
+3. Add the keys to your `.env` file
+
+### 2. Set up the Database Schema
+1. Go to the SQL Editor in your Supabase dashboard
+2. Run the SQL script from `sql/supabase_setup.sql`
+3. This will create the necessary tables, RLS policies, and functions
+
+### 3. Configure Authentication Mode
+Set `USE_SUPABASE_AUTH=true` in your `.env` file to use Supabase authentication, or keep it `false` to use the custom JWT implementation.
+
+### 4. Supabase Features Available
+- **Authentication**: User signup, login, logout with Supabase Auth
+- **Database**: User profiles stored in Supabase PostgreSQL
+- **Storage**: Avatar uploads to Supabase Storage
+- **Real-time**: Real-time subscriptions (can be extended)
+- **Row Level Security**: Automatic security policies```
 
 ## Database Migrations
 
@@ -158,11 +190,20 @@ When running in development mode, API documentation is available at:
 
 ## API Endpoints
 
-### Authentication
+### Authentication (Traditional)
 
 - `POST /api/v1/auth/register` - Register a new user
 - `POST /api/v1/auth/login` - Login with email/password
 - `POST /api/v1/auth/logout` - Logout (client-side token removal)
+
+### Authentication (Supabase) 
+
+- `POST /api/v1/auth/supabase/register` - Register with Supabase Auth
+- `POST /api/v1/auth/supabase/login` - Login with Supabase Auth
+- `POST /api/v1/auth/supabase/refresh` - Refresh Supabase token
+- `POST /api/v1/auth/supabase/logout` - Logout from Supabase
+- `GET /api/v1/auth/supabase/me` - Get current Supabase user
+- `PUT /api/v1/auth/supabase/profile` - Update Supabase profile
 
 ### Users
 

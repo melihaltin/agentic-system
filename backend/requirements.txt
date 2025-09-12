@@ -40,5 +40,12 @@ prometheus-client==0.21.0
 # HTTP Client
 aiohttp==3.10.8
 
+# Supabase Integration
+supabase==2.8.1
+postgrest==0.18.0
+realtime==2.0.4
+storage3==0.8.1
+gotrue==2.8.1
+
 # Date and Time
 python-dateutil==2.9.0.post0

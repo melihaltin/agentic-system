@@ -6,6 +6,8 @@ from core.config import settings
 from core.database import engine, Base
 from features.users.router import router as users_router
 from features.auth.router import router as auth_router
+from features.auth.supabase_router import router as supabase_auth_router
+from core.supabase import supabase_client
 import structlog
 import time
 from fastapi import Request
@@ -93,6 +95,7 @@ async def log_requests(request: Request, call_next):
 
 # Include routers
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(supabase_auth_router, prefix="/api/v1/auth", tags=["Supabase Authentication"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
 
 
@@ -105,8 +108,18 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
+    # Test Supabase connection if configured
+    supabase_status = "not_configured"
+    if hasattr(settings, 'supabase_url') and settings.supabase_url:
+        try:
+            supabase_healthy = await supabase_client.test_connection()
+            supabase_status = "healthy" if supabase_healthy else "unhealthy"
+        except Exception:
+            supabase_status = "error"
+    
     return {
         "status": "healthy",
         "database": "postgresql",
+        "supabase": supabase_status,
         "environment": settings.environment,
     }

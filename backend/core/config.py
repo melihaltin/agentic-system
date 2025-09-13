@@ -1,6 +1,6 @@
 # core/config.py
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, computed_field
 from typing import Optional
 import os
 
@@ -12,7 +12,12 @@ class Settings(BaseSettings):
     
     # Database
     database_url: str
-    database_url_sync: Optional[str] = None
+    
+    @computed_field
+    @property
+    def database_url_sync(self) -> str:
+        """Generate synchronous database URL from async URL"""
+        return self.database_url.replace("postgresql+asyncpg://", "postgresql://")
     
     # JWT
     jwt_secret_key: str
@@ -29,17 +34,9 @@ class Settings(BaseSettings):
     allowed_hosts: list = ["*"]
     allowed_origins: list = ["*"]
     
-    @field_validator("database_url_sync", mode="before")
-    @classmethod
-    def build_sync_db_url(cls, v, info):
-        if v is None and "database_url" in info.data:
-            return info.data["database_url"].replace("postgresql+asyncpg://", "postgresql://")
-        return v
-    
-    model_config = {
-        "env_file": os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
-        "extra": "ignore",
-        "case_sensitive": False
-    }
+    class Config:
+        env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+        extra = "ignore"
+        case_sensitive = False
 
 settings = Settings()

@@ -20,9 +20,9 @@ class Settings(BaseSettings):
         return self.database_url.replace("postgresql+asyncpg://", "postgresql://")
     
     # JWT
-    jwt_secret_key: str
-    jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 30
+    secret_key: str
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
     
     # Supabase (Optional)
@@ -31,8 +31,24 @@ class Settings(BaseSettings):
     supabase_service_key: Optional[str] = None
     
     # CORS
-    allowed_hosts: list = ["*"]
-    allowed_origins: list = ["*"]
+    allowed_hosts: str = "*"
+    allowed_origins: str = "*"
+    
+    def get_allowed_hosts(self) -> list:
+        """Parse allowed_hosts string into a list"""
+        if isinstance(self.allowed_hosts, str):
+            if self.allowed_hosts == "*":
+                return ["*"]
+            return [host.strip() for host in self.allowed_hosts.split(",") if host.strip()]
+        return self.allowed_hosts
+    
+    def get_allowed_origins(self) -> list:
+        """Parse allowed_origins string into a list"""
+        if isinstance(self.allowed_origins, str):
+            if self.allowed_origins == "*":
+                return ["*"]
+            return [origin.strip() for origin in self.allowed_origins.split(",") if origin.strip()]
+        return self.allowed_origins
     
     class Config:
         env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")

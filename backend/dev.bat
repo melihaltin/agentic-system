@@ -56,7 +56,7 @@ echo 🔥 Starting development server with local Supabase...
 set USE_SUPABASE=true
 set ENVIRONMENT=local
 call venv\Scripts\activate.bat
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+venv\Scripts\uvicorn.exe main:app --reload --host 0.0.0.0 --port 8000
 goto :end
 
 :show_help

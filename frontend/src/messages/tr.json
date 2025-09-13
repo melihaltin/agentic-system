@@ -1,0 +1,113 @@
+{
+  "auth": {
+    "login": {
+      "title": "Giriş Yap",
+      "subtitle": "AI Asistan yönetim paneline erişim",
+      "email": "Email",
+      "password": "Şifre",
+      "rememberMe": "Beni hatırla",
+      "forgotPassword": "Şifrenizi mi unuttunuz?",
+      "loginButton": "Giriş Yap",
+      "loggingIn": "Giriş Yapılıyor...",
+      "noAccount": "Hesabınız yok mu?",
+      "createAccount": "Hesap Oluştur",
+      "invalidCredentials": "Email veya şifre hatalı"
+    },
+    "register": {
+      "title": "Hesap Oluştur",
+      "subtitle": "Şirketiniz için AI Asistan sistemine kayıt olun",
+      "personalInfo": "Kişisel Bilgiler",
+      "companyInfo": "Şirket Bilgileri",
+      "firstName": "Ad",
+      "lastName": "Soyad",
+      "email": "Email",
+      "password": "Şifre",
+      "companyName": "Şirket Adı",
+      "aiAssistantName": "AI Asistan Adı",
+      "aiAssistantPlaceholder": "Örn: MusteriHizmetleriAI, SatisAsistani",
+      "industry": "Sektör (Opsiyonel)",
+      "industryPlaceholder": "Örn: E-ticaret, Teknoloji, Sağlık",
+      "website": "Website (Opsiyonel)",
+      "websitePlaceholder": "https://www.sirketiniz.com",
+      "description": "Şirket Açıklaması (Opsiyonel)",
+      "descriptionPlaceholder": "Şirketiniz hakkında kısa bir açıklama yazın...",
+      "registerButton": "Hesap Oluştur",
+      "registering": "Hesap Oluşturuluyor...",
+      "haveAccount": "Zaten hesabınız var mı?",
+      "signIn": "Giriş Yap"
+    },
+    "validation": {
+      "required": "{field} gereklidir",
+      "invalidEmail": "Geçerli bir email adresi giriniz",
+      "passwordMinLength": "Şifre en az 6 karakter olmalıdır",
+      "invalidUrl": "Geçerli bir URL giriniz"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Yönetim Paneli",
+      "subtitle": "AI Asistan sisteminizi buradan yönetebilirsiniz",
+      "welcome": "Hoş geldiniz"
+    },
+    "header": {
+      "logout": "Çıkış Yap"
+    },
+    "stats": {
+      "totalUsers": "Toplam Kullanıcı",
+      "activeUsers": "Aktif kullanıcı sayısı",
+      "aiAssistant": "AI Asistan",
+      "activeAiAssistant": "Aktif AI asistan adı",
+      "status": "Durum",
+      "systemStatus": "Sistem durumu",
+      "active": "Aktif",
+      "registrationDate": "Kayıt Tarihi",
+      "accountCreationDate": "Hesap oluşturma tarihi",
+      "unknown": "Bilinmiyor"
+    },
+    "companySettings": {
+      "title": "Şirket Bilgileri",
+      "edit": "Düzenle",
+      "companyName": "Şirket Adı",
+      "aiAssistantName": "AI Asistan Adı",
+      "industry": "Sektör",
+      "industryPlaceholder": "Örn: E-ticaret, Teknoloji, Sağlık",
+      "website": "Website",
+      "websitePlaceholder": "https://www.sirketiniz.com",
+      "description": "Şirket Açıklaması",
+      "descriptionPlaceholder": "Şirketiniz hakkında kısa bir açıklama...",
+      "systemInfo": "Sistem Bilgileri",
+      "registrationDate": "Kayıt Tarihi",
+      "cancel": "İptal",
+      "save": "Kaydet",
+      "saving": "Kaydediliyor...",
+      "updateSuccess": "Şirket bilgileri başarıyla güncellendi!",
+      "notConfigured": "Yapılandırılmamış"
+    },
+    "quickActions": {
+      "title": "Hızlı İşlemler",
+      "aiSettings": "AI Asistan Ayarları",
+      "reports": "Raporlar",
+      "advancedSettings": "Gelişmiş Ayarlar"
+    },
+    "systemStatus": {
+      "title": "Sistem Durumu",
+      "aiAssistant": "AI Asistan",
+      "online": "Çevrimiçi",
+      "apiStatus": "API Durumu",
+      "active": "Aktif",
+      "lastUpdate": "Son Güncelleme"
+    },
+    "help": {
+      "title": "Yardıma mı ihtiyacınız var?",
+      "subtitle": "Dokümantasyonumuzu inceleyebilir veya destek ekibimizle iletişime geçebilirsiniz.",
+      "documentation": "Dokümantasyon",
+      "support": "Destek"
+    }
+  },
+  "common": {
+    "loading": "Yükleniyor...",
+    "redirecting": "Yönlendiriliyor...",
+    "required": "gereklidir",
+    "optional": "opsiyonel"
+  }
+}

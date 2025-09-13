@@ -1,0 +1,113 @@
+{
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Access to AI Assistant management panel",
+      "email": "Email",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot your password?",
+      "loginButton": "Sign In",
+      "loggingIn": "Signing In...",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create Account",
+      "invalidCredentials": "Invalid email or password"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Register for AI Assistant system for your company",
+      "personalInfo": "Personal Information",
+      "companyInfo": "Company Information",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "password": "Password",
+      "companyName": "Company Name",
+      "aiAssistantName": "AI Assistant Name",
+      "aiAssistantPlaceholder": "e.g: CustomerServiceAI, SalesAssistant",
+      "industry": "Industry (Optional)",
+      "industryPlaceholder": "e.g: E-commerce, Technology, Healthcare",
+      "website": "Website (Optional)",
+      "websitePlaceholder": "https://www.yourcompany.com",
+      "description": "Company Description (Optional)",
+      "descriptionPlaceholder": "Write a brief description about your company...",
+      "registerButton": "Create Account",
+      "registering": "Creating Account...",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign In"
+    },
+    "validation": {
+      "required": "{field} is required",
+      "invalidEmail": "Please enter a valid email address",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "invalidUrl": "Please enter a valid URL"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Admin Panel",
+      "subtitle": "Manage your AI Assistant system from here",
+      "welcome": "Welcome"
+    },
+    "header": {
+      "logout": "Logout"
+    },
+    "stats": {
+      "totalUsers": "Total Users",
+      "activeUsers": "Active user count",
+      "aiAssistant": "AI Assistant",
+      "activeAiAssistant": "Active AI assistant name",
+      "status": "Status",
+      "systemStatus": "System status",
+      "active": "Active",
+      "registrationDate": "Registration Date",
+      "accountCreationDate": "Account creation date",
+      "unknown": "Unknown"
+    },
+    "companySettings": {
+      "title": "Company Information",
+      "edit": "Edit",
+      "companyName": "Company Name",
+      "aiAssistantName": "AI Assistant Name",
+      "industry": "Industry",
+      "industryPlaceholder": "e.g: E-commerce, Technology, Healthcare",
+      "website": "Website",
+      "websitePlaceholder": "https://www.yourcompany.com",
+      "description": "Company Description",
+      "descriptionPlaceholder": "Brief description about your company...",
+      "systemInfo": "System Information",
+      "registrationDate": "Registration Date",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "updateSuccess": "Company information updated successfully!",
+      "notConfigured": "Not Configured"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "aiSettings": "AI Assistant Settings",
+      "reports": "Reports",
+      "advancedSettings": "Advanced Settings"
+    },
+    "systemStatus": {
+      "title": "System Status",
+      "aiAssistant": "AI Assistant",
+      "online": "Online",
+      "apiStatus": "API Status",
+      "active": "Active",
+      "lastUpdate": "Last Update"
+    },
+    "help": {
+      "title": "Need help?",
+      "subtitle": "You can check our documentation or contact our support team.",
+      "documentation": "Documentation",
+      "support": "Support"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "redirecting": "Redirecting...",
+    "required": "required",
+    "optional": "optional"
+  }
+}

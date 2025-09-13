@@ -51,7 +51,7 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
         current_voice_service = voice_service
 
         for call_config in active_call_configs.values():
-            if call_config["config"].get("customer_number") == to_number:
+            if call_config["config"].get("phone_number") == to_number:
                 current_agent = call_config["agent"]
                 current_voice_service = call_config["voice_service"]
                 break
@@ -91,7 +91,7 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
         current_voice_service = voice_service
 
         for call_config in active_call_configs.values():
-            if call_config["config"].get("customer_number") == to_number:
+            if call_config["config"].get("phone_number") == to_number:
                 current_agent = call_config["agent"]
                 current_voice_service = call_config["voice_service"]
                 break
@@ -152,17 +152,17 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
             data = request.get_json()
 
             # Validate required fields
-            required_fields = ["customer_number", "business_info"]
+            required_fields = ["phone_number", "business_info"]
             for field in required_fields:
                 if not data.get(field):
                     return {"error": f"{field} is required"}, 400
 
             # Extract call configuration
             call_config = {
-                "customer_number": data["customer_number"],
+                "phone_number": data["phone_number"],
                 "customer_name": data.get("customer_name", ""),
                 "customer_type": data.get("customer_type", "regular"),
-                "order_id": data.get("order_id", ""),
+                "cart_id": data.get("cart_id", ""),
                 "business_info": data["business_info"],
                 "agent_name": data.get("agent_name", "AI Assistant"),
                 "tts_provider": data.get(
@@ -172,7 +172,7 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
                 "voice_settings": data.get("voice_settings", {}),
             }
 
-            print(f"🚀 Starting AI agent call for: {call_config['customer_number']}")
+            print(f"🚀 Starting AI agent call for: {call_config['phone_number']}")
             print(f"📋 Business: {call_config['business_info']['company_name']}")
             print(f"🎤 TTS Provider: {call_config['tts_provider']}")
 
@@ -191,7 +191,7 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
 
             # Start the call
             result = dynamic_agent.make_outbound_call(
-                to_number=call_config["customer_number"],
+                to_number=call_config["phone_number"],
                 customer_name=call_config["customer_name"],
             )
 
@@ -209,7 +209,7 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
                     "call_sid": result["call_sid"],
                     "message": "AI agent call started successfully",
                     "config": {
-                        "customer_number": call_config["customer_number"],
+                        "phone_number": call_config["phone_number"],
                         "business": call_config["business_info"]["company_name"],
                         "agent_name": call_config["agent_name"],
                         "tts_provider": call_config["tts_provider"],

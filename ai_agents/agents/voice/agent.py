@@ -57,17 +57,17 @@ class TwilioOutboundAgent:
                 You are a professional and friendly customer service representative. You understand all languages and will continue in whichever language the customer speaks. Your tasks:
                 1. Politely greet the customer and offer a special promo code.
                 2. If the customer is interested, respond positively (e.g., "Great!") and immediately call the `generate_promo_code` tool. 
-                3. Always pass the phone_number parameter when calling the tool.
+                3. Always pass the phone_number parameter when calling the tool. Don't ask the customer for their phone number. You have access to the customer's phone number from the call context.
                 4. After the tool runs, say "I am sending your promo code and details via SMS. Have a great day!" and end the conversation.
             """
 
         # Extract configuration details
         business_info = self.call_config.get("business_info", {})
         customer_name = self.call_config.get("customer_name", "")
-        customer_number = self.call_config.get("customer_number", "")
+        phone_number = self.call_config.get("phone_number", "")
         agent_name = self.call_config.get("agent_name", "AI Assistant")
         customer_type = self.call_config.get("customer_type", "regular")
-        order_id = self.call_config.get("order_id", "")
+        cart_id = self.call_config.get("cart_id", "")
 
         company_name = business_info.get("company_name", "our company")
         company_description = business_info.get("description", "")
@@ -83,13 +83,13 @@ class TwilioOutboundAgent:
 
         prompt_parts.extend(
             [
-                f"You are calling customer {customer_name if customer_name else 'the customer'} at phone number {customer_number}.",
+                f"You are calling customer {customer_name if customer_name else 'the customer'} at phone number {phone_number}.",
                 f"Customer type: {customer_type}",
             ]
         )
 
-        if order_id:
-            prompt_parts.append(f"This call is related to order ID: {order_id}")
+        if cart_id:
+            prompt_parts.append(f"This call is related to order ID: {cart_id}")
 
         prompt_parts.extend(
             [
@@ -230,7 +230,7 @@ class TwilioOutboundAgent:
                     tool_args["customer_type"] = self.call_config.get(
                         "customer_type", "regular"
                     )
-                    tool_args["order_id"] = self.call_config.get("order_id", "")
+                    tool_args["cart_id"] = self.call_config.get("cart_id", "")
 
                 tool_output = generate_promo_code.invoke(tool_args)
 

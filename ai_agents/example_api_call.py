@@ -11,10 +11,10 @@ def test_start_call():
     url = "http://localhost:5000/start-call"
 
     payload = {
-        "customer_number": "+31687611451",  # Replace with actual number
+        "phone_number": "+31687611451",  # Replace with actual number
         "customer_name": "John Doe",
         "customer_type": "vip",  # regular, new, vip
-        "order_id": "ORD-12345",
+        "cart_id": "ORD-12345",
         "business_info": {
             "company_name": "TechCorp Solutions",
             "description": "Leading technology solutions provider",

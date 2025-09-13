@@ -41,6 +41,117 @@
       "invalidEmail": "Please enter a valid email address",
       "passwordMinLength": "Password must be at least 6 characters",
       "invalidUrl": "Please enter a valid URL"
+    },
+    "businessRegistration": {
+      "title": "Business Registration",
+      "subtitle": "Register your business to start using your AI assistant in a few steps",
+      "steps": {
+        "basicInfo": "Basic Info",
+        "basicInfoDesc": "Your business information",
+        "category": "Business Category",
+        "categoryDesc": "Your field of activity",
+        "platform": "Platform Selection",
+        "platformDesc": "Platform you use",
+        "apiSettings": "API Settings",
+        "apiSettingsDesc": "Integration information"
+      },
+      "basicInfo": {
+        "title": "Your Business Information",
+        "businessName": "Business Name",
+        "businessNamePlaceholder": "Example: ABC Technology Ltd.",
+        "phoneNumber": "Phone Number",
+        "phoneNumberPlaceholder": "+1 555 123 45 67",
+        "email": "Email Address",
+        "emailPlaceholder": "example@company.com"
+      },
+      "category": {
+        "title": "Choose Your Business Category",
+        "ecommerce": "E-Commerce",
+        "ecommerceDesc": "Online sales platforms",
+        "carRental": "Car Rental",
+        "carRentalDesc": "Car rental services",
+        "restaurant": "Restaurant",
+        "restaurantDesc": "Food service and restaurants",
+        "serviceBased": "Service Based",
+        "serviceBasedDesc": "Service-based businesses"
+      },
+      "platform": {
+        "title": "Platform Selection"
+      },
+      "api": {
+        "title": "API Settings",
+        "integrationTitle": "API Integration",
+        "integrationDesc": "Final step! Enter your API information and complete the integration.",
+        "securityTitle": "Security Notice",
+        "securityDesc": "Your API keys are stored securely with encryption. This information is only used for integration with your system."
+      },
+      "platforms": {
+        "shopify": "Shopify",
+        "woocommerce": "WooCommerce",
+        "magento": "Magento",
+        "bigcommerce": "BigCommerce",
+        "turo": "Turo",
+        "getaround": "Getaround",
+        "zipcar": "Zipcar",
+        "ubereats": "Uber Eats",
+        "doordash": "DoorDash",
+        "grubhub": "GrubHub",
+        "calendly": "Calendly",
+        "square": "Square",
+        "stripe": "Stripe",
+        "custom": "Custom System"
+      },
+      "apiFields": {
+        "shopifyApiKey": "Shopify API Key",
+        "shopifySecret": "Shopify Secret Key",
+        "shopUrl": "Shop URL",
+        "consumerKey": "Consumer Key",
+        "consumerSecret": "Consumer Secret",
+        "storeUrl": "Store URL",
+        "publishableKey": "Publishable Key",
+        "secretKey": "Secret Key",
+        "personalAccessToken": "Personal Access Token",
+        "organizationUri": "Organization URI",
+        "apiKey": "API Key",
+        "apiSecret": "API Secret"
+      },
+      "navigation": {
+        "back": "← Back",
+        "next": "Next →",
+        "complete": "🎉 Complete Registration",
+        "completing": "Registering..."
+      },
+      "validation": {
+        "businessNameRequired": "Business name is required",
+        "phoneRequired": "Phone number is required",
+        "emailRequired": "Email is required",
+        "categoryRequired": "Category selection is required",
+        "platformRequired": "Platform selection is required",
+        "apiKeyRequired": "API Key is required",
+        "invalidEmail": "Please enter a valid email address"
+      },
+      "footer": {
+        "haveAccount": "Already have an account?",
+        "signIn": "Sign In"
+      }
+    },
+    "registrationSuccess": {
+      "title": "Registration Successful! 🎉",
+      "subtitle": "Your business has been successfully registered. Your AI assistant is now ready!",
+      "nextStepsTitle": "Next Steps:",
+      "nextSteps": {
+        "testing": "✅ Testing your integration",
+        "configuring": "✅ Configuring your AI assistant",
+        "completing": "🔄 Completing system configuration"
+      },
+      "actions": {
+        "goToAdmin": "Go to Admin Panel",
+        "goToDashboard": "Go to Dashboard"
+      },
+      "support": {
+        "text": "If you have any issues",
+        "link": "contact our support team"
+      }
     }
   },
   "admin": {

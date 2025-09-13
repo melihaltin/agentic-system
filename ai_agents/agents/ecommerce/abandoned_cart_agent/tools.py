@@ -1,5 +1,5 @@
 """
-Voice agent tools for promo code generation and SMS sending
+Voice agent tools for promo code generation and SMS sending - Simplified
 """
 
 import os
@@ -36,25 +36,29 @@ Happy shopping! 🛍️"""
         return False
 
 
+# This is now only used as a standalone tool if needed
 @tool
-def generate_promo_code(
-    cart_id: str = "",
-    phone_number: str = "+31687611451",  # Should be dynamic in real implementation
+def generate_promo_code_standalone(
+    cart_id: str = "", phone_number: str = "", customer_type: str = "regular"
 ) -> Dict[str, Any]:
-    """Generate a promo code for the customer and automatically send it via SMS.
+    """Generate a promo code - standalone version with parameters.
+    This tool is not used by the voice agent anymore.
 
     Args:
         cart_id (str): The cart ID associated with the promo code.
         phone_number (str): The customer's phone number to send the promo code SMS.
+        customer_type (str): Customer type (regular, VIP, etc.)
 
     Returns:
         Dict[str, Any]: Details of the generated promo code and SMS status.
     """
 
-    print("🛠️ generate_promo_code tool called")
+    print("🛠️ generate_promo_code_standalone tool called")
 
-    discount = random.randint(10, 20)
-    prefix = "SAVE"
+    discount = (
+        random.randint(15, 25) if customer_type == "VIP" else random.randint(10, 20)
+    )
+    prefix = "VIP" if customer_type == "VIP" else "SAVE"
 
     suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     promo_code = f"{prefix}{suffix}"
@@ -62,7 +66,8 @@ def generate_promo_code(
     promo_data = {
         "promo_code": promo_code,
         "discount_percent": discount,
-        "order_id": cart_id or "N/A",
+        "cart_id": cart_id or "N/A",
+        "customer_type": customer_type,
         "valid_until": "2025-12-31",
         "generated_at": datetime.now().isoformat(),
     }

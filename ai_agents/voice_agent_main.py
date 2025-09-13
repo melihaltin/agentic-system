@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from config.voice_config import VoiceConfig
 from services.webhook_server import create_webhook_server
-from agents.voice.agent import TwilioOutboundAgent
+from agents.ecommerce.abandoned_cart_agent.agent import AbandonedCartAgent
 
 load_dotenv()
 
@@ -73,7 +73,7 @@ def main():
         else:
             voice_service = VoiceConfig.create_twilio_config()
 
-        agent = TwilioOutboundAgent(voice_service)
+        agent = AbandonedCartAgent(voice_service)
         test_phone = input("Enter phone number (+1xxxxxxxxxx): ").strip()
         if test_phone:
             agent.make_outbound_call(test_phone)

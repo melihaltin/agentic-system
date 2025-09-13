@@ -6,7 +6,7 @@ import os
 from flask import Flask, request, send_from_directory
 from twilio.twiml.voice_response import VoiceResponse
 
-from agents.voice.agent import TwilioOutboundAgent
+from agents.ecommerce.abandoned_cart_agent.agent import AbandonedCartAgent
 from services.voice_service import VoiceService
 from services.tts.elevenlabs import ElevenLabsTTS
 
@@ -14,7 +14,7 @@ from services.tts.elevenlabs import ElevenLabsTTS
 def create_webhook_server(voice_service: VoiceService) -> Flask:
     """Create Flask server for Twilio webhooks."""
     app = Flask(__name__)
-    agent = TwilioOutboundAgent(voice_service)
+    agent = AbandonedCartAgent(voice_service)
 
     # Store active call configurations
     active_call_configs = {}
@@ -187,7 +187,7 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
                 dynamic_voice_service = VoiceConfig.create_twilio_config()
 
             # Create new agent instance with dynamic configuration
-            dynamic_agent = TwilioOutboundAgent(dynamic_voice_service, call_config)
+            dynamic_agent = AbandonedCartAgent(dynamic_voice_service, call_config)
 
             # Start the call
             result = dynamic_agent.make_outbound_call(

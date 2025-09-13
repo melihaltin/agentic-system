@@ -41,6 +41,117 @@
       "invalidEmail": "Geçerli bir email adresi giriniz",
       "passwordMinLength": "Şifre en az 6 karakter olmalıdır",
       "invalidUrl": "Geçerli bir URL giriniz"
+    },
+    "businessRegistration": {
+      "title": "İşletme Kaydı",
+      "subtitle": "AI asistanınızı kullanmaya başlamak için birkaç adımda kayıt olun",
+      "steps": {
+        "basicInfo": "Temel Bilgiler",
+        "basicInfoDesc": "İş bilgileriniz",
+        "category": "İş Kategorisi",
+        "categoryDesc": "Faaliyet alanınız",
+        "platform": "Platform Seçimi",
+        "platformDesc": "Kullandığınız platform",
+        "apiSettings": "API Ayarları",
+        "apiSettingsDesc": "Entegrasyon bilgileri"
+      },
+      "basicInfo": {
+        "title": "İşletme Bilgileriniz",
+        "businessName": "İşletme Adı",
+        "businessNamePlaceholder": "Örnek: ABC Teknoloji Ltd.",
+        "phoneNumber": "Telefon Numarası",
+        "phoneNumberPlaceholder": "+90 555 123 45 67",
+        "email": "E-posta Adresi",
+        "emailPlaceholder": "ornek@firma.com"
+      },
+      "category": {
+        "title": "İş Kategorinizi Seçin",
+        "ecommerce": "E-Ticaret",
+        "ecommerceDesc": "Online satış platformları",
+        "carRental": "Araç Kiralama",
+        "carRentalDesc": "Araç kiralama hizmetleri",
+        "restaurant": "Restoran",
+        "restaurantDesc": "Yemek servisi ve restoranlar",
+        "serviceBased": "Hizmet Tabanlı",
+        "serviceBasedDesc": "Hizmet tabanlı işletmeler"
+      },
+      "platform": {
+        "title": "Platform Seçimi"
+      },
+      "api": {
+        "title": "API Ayarları",
+        "integrationTitle": "API Entegrasyonu",
+        "integrationDesc": "Son adım! API bilgilerinizi girin ve entegrasyonu tamamlayın.",
+        "securityTitle": "Güvenlik Uyarısı",
+        "securityDesc": "API anahtarlarınız güvenli bir şekilde şifrelenerek saklanır. Bu bilgiler sadece sisteminizle entegrasyon için kullanılır."
+      },
+      "platforms": {
+        "shopify": "Shopify",
+        "woocommerce": "WooCommerce",
+        "magento": "Magento",
+        "bigcommerce": "BigCommerce",
+        "turo": "Turo",
+        "getaround": "Getaround",
+        "zipcar": "Zipcar",
+        "ubereats": "Uber Eats",
+        "doordash": "DoorDash",
+        "grubhub": "GrubHub",
+        "calendly": "Calendly",
+        "square": "Square",
+        "stripe": "Stripe",
+        "custom": "Özel Sistem"
+      },
+      "apiFields": {
+        "shopifyApiKey": "Shopify API Key",
+        "shopifySecret": "Shopify Secret Key",
+        "shopUrl": "Shop URL",
+        "consumerKey": "Consumer Key",
+        "consumerSecret": "Consumer Secret",
+        "storeUrl": "Store URL",
+        "publishableKey": "Publishable Key",
+        "secretKey": "Secret Key",
+        "personalAccessToken": "Personal Access Token",
+        "organizationUri": "Organization URI",
+        "apiKey": "API Key",
+        "apiSecret": "API Secret"
+      },
+      "navigation": {
+        "back": "← Geri",
+        "next": "İleri →",
+        "complete": "🎉 Kaydı Tamamla",
+        "completing": "Kaydediliyor..."
+      },
+      "validation": {
+        "businessNameRequired": "İşletme adı gereklidir",
+        "phoneRequired": "Telefon numarası gereklidir",
+        "emailRequired": "E-posta gereklidir",
+        "categoryRequired": "Kategori seçimi gereklidir",
+        "platformRequired": "Platform seçimi gereklidir",
+        "apiKeyRequired": "API Key gereklidir",
+        "invalidEmail": "Geçerli bir e-posta adresi giriniz"
+      },
+      "footer": {
+        "haveAccount": "Zaten hesabınız var mı?",
+        "signIn": "Giriş Yapın"
+      }
+    },
+    "registrationSuccess": {
+      "title": "Kayıt Başarılı! 🎉",
+      "subtitle": "İşletmeniz başarıyla kaydedildi. AI asistanınız artık hazır!",
+      "nextStepsTitle": "Sıradaki Adımlar:",
+      "nextSteps": {
+        "testing": "✅ Entegrasyonunuz test ediliyor",
+        "configuring": "✅ AI asistanınız yapılandırılıyor",
+        "completing": "🔄 Sistem konfigürasyonu tamamlanıyor"
+      },
+      "actions": {
+        "goToAdmin": "Admin Paneline Git",
+        "goToDashboard": "Dashboard'a Git"
+      },
+      "support": {
+        "text": "Sorun yaşıyorsanız",
+        "link": "destek ekibimizle iletişime geçin"
+      }
     }
   },
   "admin": {

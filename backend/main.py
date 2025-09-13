@@ -7,6 +7,9 @@ from core.database import engine, Base
 from features.users.router import router as users_router
 from features.auth.router import router as auth_router
 from features.auth.supabase_router import router as supabase_auth_router
+from features.businesses.router import router as businesses_router
+from features.services.router import router as services_router
+from features.logs.router import router as logs_router
 from core.supabase import supabase_client
 import structlog
 import time
@@ -69,10 +72,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=settings.allowed_hosts,
-)
+# app.add_middleware(
+#     TrustedHostMiddleware,
+#     allowed_hosts=settings.allowed_hosts,
+# )
 
 
 @app.middleware("http")
@@ -94,9 +97,12 @@ async def log_requests(request: Request, call_next):
 
 
 # Include routers
-app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
-app.include_router(supabase_auth_router, prefix="/api/v1/auth", tags=["Supabase Authentication"])
-app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+app.include_router(supabase_auth_router, prefix="/auth/supabase", tags=["Supabase Authentication"])
+app.include_router(users_router, prefix="/users", tags=["Users"])
+app.include_router(businesses_router, prefix="/businesses", tags=["Businesses"])
+app.include_router(services_router, prefix="/services", tags=["Services"])
+app.include_router(logs_router, prefix="/logs", tags=["Logs"])
 
 
 @app.get("/")

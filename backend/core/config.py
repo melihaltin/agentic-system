@@ -1,90 +1,45 @@
+# core/config.py
 from pydantic_settings import BaseSettings
-from pydantic import Field, computed_field
-from typing import List
-
+from pydantic import field_validator
+from typing import Optional
+import os
 
 class Settings(BaseSettings):
-    """Application settings with environment variable support."""
+    # App
+    app_name: str = "FastAPI Auth App"
+    debug: bool = False
+    environment: str = "development"
+    
+    # Database
+    database_url: str
+    database_url_sync: Optional[str] = None
+    
+    # JWT
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 30
+    jwt_refresh_token_expire_days: int = 7
+    
+    # Supabase (Optional)
+    supabase_url: Optional[str] = None
+    supabase_anon_key: Optional[str] = None
+    supabase_service_key: Optional[str] = None
+    
+    # CORS
+    allowed_hosts: list = ["*"]
+    allowed_origins: list = ["*"]
+    
+    @field_validator("database_url_sync", mode="before")
+    @classmethod
+    def build_sync_db_url(cls, v, info):
+        if v is None and "database_url" in info.data:
+            return info.data["database_url"].replace("postgresql+asyncpg://", "postgresql://")
+        return v
+    
+    model_config = {
+        "env_file": os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
+        "extra": "ignore",
+        "case_sensitive": False
+    }
 
-    # Environment
-    environment: str = Field(default="development", description="Environment name")
-    debug: bool = Field(default=True, description="Debug mode")
-
-    # API Configuration
-    api_title: str = Field(default="Team AI Backend API", description="API title")
-    api_version: str = Field(default="1.0.0", description="API version")
-
-    # Security
-    secret_key: str = Field(..., description="Secret key for JWT encoding")
-    algorithm: str = Field(default="HS256", description="JWT algorithm")
-    access_token_expire_minutes: int = Field(
-        default=30, description="Access token expiration in minutes"
-    )
-
-    # Database Configuration
-    postgres_server: str = Field(
-        default="localhost", description="PostgreSQL server host"
-    )
-    postgres_port: int = Field(default=5432, description="PostgreSQL server port")
-    postgres_user: str = Field(..., description="PostgreSQL username")
-    postgres_password: str = Field(..., description="PostgreSQL password")
-    postgres_db: str = Field(..., description="PostgreSQL database name")
-
-    @computed_field
-    @property
-    def database_url(self) -> str:
-        """Async PostgreSQL database URL."""
-        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_server}:{self.postgres_port}/{self.postgres_db}"
-
-    @computed_field
-    @property
-    def database_url_sync(self) -> str:
-        """Sync PostgreSQL database URL (for Alembic migrations)."""
-        return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_server}:{self.postgres_port}/{self.postgres_db}"
-
-    # CORS Configuration
-    allowed_hosts_str: str = Field(
-        default="http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000,http://127.0.0.1:8000",
-        description="Allowed hosts for CORS (comma-separated)",
-        alias="allowed_hosts"
-    )
-
-    @computed_field
-    @property
-    def allowed_hosts(self) -> List[str]:
-        """Parse allowed hosts from comma-separated string."""
-        return [host.strip() for host in self.allowed_hosts_str.split(",")]
-
-    # Redis Configuration (optional for caching)
-    redis_url: str = Field(
-        default="redis://localhost:6379", description="Redis URL for caching"
-    )
-
-    # File Upload Configuration
-    max_file_size: int = Field(
-        default=10 * 1024 * 1024, description="Maximum file size in bytes (10MB)"
-    )
-    upload_path: str = Field(default="uploads", description="Upload directory path")
-
-    # Pagination
-    default_page_size: int = Field(
-        default=20, description="Default pagination page size"
-    )
-    max_page_size: int = Field(default=100, description="Maximum pagination page size")
-
-    # Supabase Configuration
-    supabase_url: str = Field(..., description="Supabase project URL")
-    supabase_anon_key: str = Field(..., description="Supabase anonymous key")
-    supabase_service_key: str = Field(..., description="Supabase service role key")
-    use_supabase_auth: bool = Field(
-        default=False, description="Use Supabase authentication instead of custom JWT"
-    )
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        extra = "ignore"
-
-
-# Create settings instance
 settings = Settings()

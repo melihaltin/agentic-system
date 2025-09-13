@@ -8,27 +8,33 @@ import { Input, Button } from "@/components/ui";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface LoginData {
+interface SignUpData {
   email: string;
   password: string;
+  confirmPassword: string;
+  firstName: string;
+  lastName: string;
 }
 
-const Login: React.FC = () => {
+const SignUp: React.FC = () => {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const { signIn, user, loading } = useAuth();
-  const t = useTranslations("auth.login");
+  const { signUp, user, loading } = useAuth();
+  const t = useTranslations("auth.signup");
   const tValidation = useTranslations("auth.validation");
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [formData, setFormData] = useState<LoginData>({
+  const [formData, setFormData] = useState<SignUpData>({
     email: "",
     password: "",
+    confirmPassword: "",
+    firstName: "",
+    lastName: "",
   });
 
-  const [errors, setErrors] = useState<Partial<LoginData>>({});
+  const [errors, setErrors] = useState<Partial<SignUpData>>({});
 
   // Redirect if already logged in
   useEffect(() => {
@@ -41,13 +47,21 @@ const Login: React.FC = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
-    if (errors[name as keyof LoginData]) {
+    if (errors[name as keyof SignUpData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<LoginData> = {};
+    const newErrors: Partial<SignUpData> = {};
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = tValidation("required", { field: t("firstName") });
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = tValidation("required", { field: t("lastName") });
+    }
 
     if (!formData.email.trim()) {
       newErrors.email = tValidation("required", { field: t("email") });
@@ -57,6 +71,16 @@ const Login: React.FC = () => {
 
     if (!formData.password.trim()) {
       newErrors.password = tValidation("required", { field: t("password") });
+    } else if (formData.password.length < 6) {
+      newErrors.password = t("passwordTooShort");
+    }
+
+    if (!formData.confirmPassword.trim()) {
+      newErrors.confirmPassword = tValidation("required", {
+        field: t("confirmPassword"),
+      });
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = t("passwordsDoNotMatch");
     }
 
     setErrors(newErrors);
@@ -70,21 +94,24 @@ const Login: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await signIn(formData.email, formData.password);
+      const { error } = await signUp(formData.email, formData.password, {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+      });
 
       if (error) {
         setErrors({
           email: error.message,
-          password: error.message,
         });
       } else {
-        router.push(`/${locale}/admin`);
+        // Show success message or redirect
+        alert(t("checkEmail"));
+        router.push(`/${locale}/login`);
       }
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Sign up failed:", error);
       setErrors({
-        email: t("invalidCredentials"),
-        password: t("invalidCredentials"),
+        email: t("signUpFailed"),
       });
     } finally {
       setIsLoading(false);
@@ -110,6 +137,30 @@ const Login: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label={t("firstName")}
+                name="firstName"
+                type="text"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                error={errors.firstName}
+                autoComplete="given-name"
+                required
+              />
+
+              <Input
+                label={t("lastName")}
+                name="lastName"
+                type="text"
+                value={formData.lastName}
+                onChange={handleInputChange}
+                error={errors.lastName}
+                autoComplete="family-name"
+                required
+              />
+            </div>
+
             <Input
               label={t("email")}
               name="email"
@@ -128,35 +179,20 @@ const Login: React.FC = () => {
               value={formData.password}
               onChange={handleInputChange}
               error={errors.password}
-              autoComplete="current-password"
+              autoComplete="new-password"
               required
             />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-900"
-                >
-                  {t("rememberMe")}
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a
-                  href="#"
-                  className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-                >
-                  {t("forgotPassword")}
-                </a>
-              </div>
-            </div>
+            <Input
+              label={t("confirmPassword")}
+              name="confirmPassword"
+              type="password"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              error={errors.confirmPassword}
+              autoComplete="new-password"
+              required
+            />
 
             <Button
               type="submit"
@@ -164,17 +200,17 @@ const Login: React.FC = () => {
               isLoading={isLoading}
               disabled={isLoading}
             >
-              {isLoading ? t("loggingIn") : t("loginButton")}
+              {isLoading ? t("signingUp") : t("signUpButton")}
             </Button>
 
             <div className="text-center">
               <span className="text-sm text-gray-600">
-                {t("noAccount")}{" "}
+                {t("haveAccount")}{" "}
                 <Link
-                  href={`/${locale}/signup`}
+                  href={`/${locale}/login`}
                   className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
                 >
-                  {t("createAccount")}
+                  {t("signIn")}
                 </Link>
               </span>
             </div>
@@ -185,4 +221,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default SignUp;

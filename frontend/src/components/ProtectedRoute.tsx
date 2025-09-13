@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useAuthStore } from "@/store/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,16 +13,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const { isAuthenticated, user } = useAuthStore();
+  const { user, loading } = useAuth();
   const t = useTranslations("common");
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
+    if (!loading && !user) {
       router.push(`/${locale}/login`);
     }
-  }, [isAuthenticated, user, router, locale]);
+  }, [user, loading, router, locale]);
 
-  if (!isAuthenticated || !user) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

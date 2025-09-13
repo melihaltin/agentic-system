@@ -38,22 +38,23 @@ Happy shopping! 🛍️"""
 
 @tool
 def generate_promo_code(
-    order_id: str = "",
-    customer_type: str = "regular",
+    cart_id: str = "",
     phone_number: str = "+31687611451",  # Should be dynamic in real implementation
 ) -> Dict[str, Any]:
-    """Generate a promo code for the customer and automatically send it via SMS."""
-    print(f"🛠️ generate_promo_code tool called. Customer type: {customer_type}")
+    """Generate a promo code for the customer and automatically send it via SMS.
 
-    if customer_type == "vip":
-        discount = random.randint(25, 40)
-        prefix = "VIP"
-    elif customer_type == "new":
-        discount = random.randint(15, 25)
-        prefix = "NEW"
-    else:
-        discount = random.randint(10, 20)
-        prefix = "SAVE"
+    Args:
+        cart_id (str): The cart ID associated with the promo code.
+        phone_number (str): The customer's phone number to send the promo code SMS.
+
+    Returns:
+        Dict[str, Any]: Details of the generated promo code and SMS status.
+    """
+
+    print("🛠️ generate_promo_code tool called")
+
+    discount = random.randint(10, 20)
+    prefix = "SAVE"
 
     suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     promo_code = f"{prefix}{suffix}"
@@ -61,8 +62,7 @@ def generate_promo_code(
     promo_data = {
         "promo_code": promo_code,
         "discount_percent": discount,
-        "order_id": order_id or "N/A",
-        "customer_type": customer_type,
+        "order_id": cart_id or "N/A",
         "valid_until": "2025-12-31",
         "generated_at": datetime.now().isoformat(),
     }

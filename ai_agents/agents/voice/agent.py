@@ -13,7 +13,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.checkpoint.memory import MemorySaver
 
 # LangChain imports
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage, AIMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 # Twilio imports
@@ -28,12 +28,15 @@ from agents.voice.tools import generate_promo_code
 class TwilioOutboundAgent:
     """Twilio outbound voice agent with LangGraph integration"""
 
-    def __init__(self, voice_service: VoiceService):
+    def __init__(self, voice_service: VoiceService, call_config: Dict[str, Any] = None):
         self.twilio_client = Client(
             os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN")
         )
         self.twilio_phone = os.getenv("TWILIO_PHONE_NUMBER")
         self.voice_service = voice_service
+
+        # Store call configuration for dynamic behavior
+        self.call_config = call_config or {}
 
         # Configure LLM with tools
         self.llm = ChatGoogleGenerativeAI(
@@ -47,25 +50,96 @@ class TwilioOutboundAgent:
         self.graph = self._build_graph()
         self.active_calls = {}
 
-    def _build_graph(self):
-        """Build LangGraph workflow."""
-
-        def agent_node(state: MessagesState):
-            """Main node that talks to the customer and calls tools."""
-            system_prompt = SystemMessage(
-                content="""
+    def _create_dynamic_system_prompt(self) -> str:
+        """Create dynamic system prompt based on call configuration."""
+        if not self.call_config:
+            return """
                 You are a professional and friendly customer service representative. You understand all languages and will continue in whichever language the customer speaks. Your tasks:
                 1. Politely greet the customer and offer a special promo code.
                 2. If the customer is interested, respond positively (e.g., "Great!") and immediately call the `generate_promo_code` tool. 
                 3. Always pass the phone_number parameter when calling the tool.
                 4. After the tool runs, say "I am sending your promo code and details via SMS. Have a great day!" and end the conversation.
-                """
-            )
+            """
+
+        # Extract configuration details
+        business_info = self.call_config.get("business_info", {})
+        customer_name = self.call_config.get("customer_name", "")
+        customer_number = self.call_config.get("customer_number", "")
+        agent_name = self.call_config.get("agent_name", "AI Assistant")
+        customer_type = self.call_config.get("customer_type", "regular")
+        order_id = self.call_config.get("order_id", "")
+
+        company_name = business_info.get("company_name", "our company")
+        company_description = business_info.get("description", "")
+
+        # Build dynamic system prompt
+        prompt_parts = [
+            f"You are a professional and friendly AI customer service representative for {company_name}.",
+            f"Your name is {agent_name}.",
+        ]
+
+        if company_description:
+            prompt_parts.append(f"Company description: {company_description}")
+
+        prompt_parts.extend(
+            [
+                f"You are calling customer {customer_name if customer_name else 'the customer'} at phone number {customer_number}.",
+                f"Customer type: {customer_type}",
+            ]
+        )
+
+        if order_id:
+            prompt_parts.append(f"This call is related to order ID: {order_id}")
+
+        prompt_parts.extend(
+            [
+                "You understand all languages and will continue in whichever language the customer speaks.",
+                "Your conversation flow:",
+                "1. Politely introduce yourself and the company, then offer a special promo code for abandoned carts. You will try to engage the customer in a friendly manner.",
+                "2. If the customer is interested, respond positively and immediately call the `generate_promo_code` tool.",
+                "3. Always pass the phone_number parameter when calling the tool.",
+                "4. After the tool runs, inform the customer that you're sending the promo code via SMS and end the conversation politely.",
+                "Keep the conversation natural, friendly, and professional.",
+            ]
+        )
+
+        return " ".join(prompt_parts)
+
+    def _build_graph(self):
+        """Build LangGraph workflow."""
+
+        def agent_node(state: MessagesState):
+            """Main node that talks to the customer and calls tools."""
+            system_prompt = SystemMessage(content=self._create_dynamic_system_prompt())
 
             if len(state["messages"]) <= 1:
                 messages = [system_prompt] + state["messages"]
             else:
                 messages = state["messages"]
+
+            # Handle initial call start
+            last_message = state["messages"][-1]
+            if (
+                isinstance(last_message, HumanMessage)
+                and last_message.content == "START_CALL"
+            ):
+                # Generate initial greeting
+                business_name = (
+                    self.call_config.get("business_info", {}).get(
+                        "company_name", "our company"
+                    )
+                    if self.call_config
+                    else "our company"
+                )
+                agent_name = (
+                    self.call_config.get("agent_name", "AI Assistant")
+                    if self.call_config
+                    else "AI Assistant"
+                )
+
+                greeting = f"Hello! This is {agent_name} calling from {business_name}. I'm reaching out to offer you an exclusive promotional code. Are you interested in hearing more about this special offer?"
+
+                return {"messages": [AIMessage(content=greeting)]}
 
             response = self.llm_with_tools.invoke(messages)
             return {"messages": [response]}
@@ -85,6 +159,32 @@ class TwilioOutboundAgent:
         workflow.add_edge("tools", "agent")
 
         return workflow.compile(checkpointer=self.memory)
+
+    def get_initial_greeting(self, phone_number: str) -> str:
+        """Generate initial greeting message using AI agent."""
+        if not self.call_config:
+            return "Hello, I am calling to offer you a special promo code. Are you interested?"
+
+        try:
+            # Create thread for this specific call
+            thread_id = f"call_{phone_number.strip().replace('+', '')}"
+            config = {"configurable": {"thread_id": thread_id}}
+
+            # Generate initial greeting using the agent
+            response = self.graph.invoke(
+                {"messages": [HumanMessage(content="START_CALL")]}, config=config
+            )
+
+            return response["messages"][-1].content
+
+        except Exception as e:
+            print(f"❌ Error generating greeting: {str(e)}")
+            # Fallback to static message
+            business_name = self.call_config.get("business_info", {}).get(
+                "company_name", "our company"
+            )
+            agent_name = self.call_config.get("agent_name", "AI Assistant")
+            return f"Hello, this is {agent_name} from {business_name}. I'm calling to offer you a special promotional offer. Are you interested?"
 
     def make_outbound_call(
         self, to_number: str, customer_name: str = ""
@@ -124,6 +224,13 @@ class TwilioOutboundAgent:
                 tool_call = last_message.tool_calls[0]
                 tool_args = tool_call["args"].copy()
                 tool_args["phone_number"] = phone_number
+
+                # Add call configuration data to tool args
+                if self.call_config:
+                    tool_args["customer_type"] = self.call_config.get(
+                        "customer_type", "regular"
+                    )
+                    tool_args["order_id"] = self.call_config.get("order_id", "")
 
                 tool_output = generate_promo_code.invoke(tool_args)
 

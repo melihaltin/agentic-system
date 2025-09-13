@@ -39,8 +39,9 @@ def main():
     print("2. Start with Twilio TTS")
     print("3. Make test call")
     print("4. Test ElevenLabs TTS (type text to convert to speech)")
+    print("5. Start API Server (for dynamic call requests)")
 
-    choice = input("Your choice (1-4): ").strip()
+    choice = input("Your choice (1-5): ").strip()
 
     if choice == "1":
         if not os.getenv("ELEVENLABS_API_KEY"):
@@ -132,6 +133,24 @@ def main():
 
             except Exception as e:
                 print(f"❌ Error generating audio: {str(e)}")
+
+    elif choice == "5":
+        print("🌐 Starting API Server for dynamic call requests...")
+        print("📡 Server will accept POST requests at /start-call endpoint")
+        print("📋 Use example_api_call.py to test the API")
+
+        # Create default voice service (will be overridden dynamically)
+        voice_service = VoiceConfig.create_twilio_config()
+        app = create_webhook_server(voice_service)
+
+        print("🚀 API Server starting on http://localhost:5000")
+        print("📞 Webhook endpoints:")
+        print("   - POST /start-call (dynamic AI agent calls)")
+        print("   - POST /webhook/outbound/start (Twilio webhook)")
+        print("   - POST /webhook/outbound/process (Twilio webhook)")
+        print("   - GET /health (health check)")
+
+        app.run(host="0.0.0.0", port=5000, debug=False)
 
     else:
         print("❌ Invalid choice.")

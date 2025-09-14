@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from .repository import AuthRepository
 from .schemas import (
     RegisterRequest,
+    BusinessRegistrationRequest,
     LoginRequest,
     AuthResponse,
     ProfileUpdateRequest,
@@ -29,6 +30,34 @@ class AuthService:
                 access_token=response["session"]["access_token"],
                 refresh_token=response["session"]["refresh_token"],
                 expires_in=response["session"]["expires_in"],
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    async def register_business(
+        self, request: BusinessRegistrationRequest
+    ) -> AuthResponse:
+        try:
+            response = await self.repository.register_business_user(request)
+
+            if not response.get("user"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Business registration failed",
+                )
+
+            session = response.get("session")
+            if not session:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Session creation failed - please verify your email address",
+                )
+
+            return AuthResponse(
+                user=response["user"],
+                access_token=session["access_token"],
+                refresh_token=session["refresh_token"],
+                expires_in=session["expires_in"],
             )
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

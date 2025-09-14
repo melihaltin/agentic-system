@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, status
 from .service import AuthService
 from .schemas import (
     RegisterRequest,
+    BusinessRegistrationRequest,
     LoginRequest,
     AuthResponse,
     ProfileUpdateRequest,
     ChangePasswordRequest,
 )
 from .dependencies import get_auth_service, get_current_active_user
-from typing import Dict, Any
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -21,6 +21,27 @@ async def register(
 ):
     """Register a new user"""
     return await auth_service.register(request)
+
+
+@router.post(
+    "/register/business",
+    response_model=AuthResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def register_business(
+    request: BusinessRegistrationRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Register a new business user with company profile"""
+    try:
+        print(f"DEBUG: Received business registration request: {request}")
+        print(f"DEBUG: Request type: {type(request)}")
+        print(f"DEBUG: Request dict: {request.dict()}")
+        return await auth_service.register_business(request)
+    except Exception as e:
+        print(f"DEBUG: Exception in register_business: {e}")
+        print(f"DEBUG: Exception type: {type(e)}")
+        raise e
 
 
 @router.post("/login", response_model=AuthResponse)

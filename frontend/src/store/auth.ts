@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { User } from "@supabase/supabase-js";
 import { authService } from "@/features/auth/services/authServices";
-import { LoginCredentials, RegisterData, UserProfile } from "@/types/auth.types";
+import { LoginCredentials, RegisterData, UserProfile, BusinessRegistrationData } from "@/types/auth.types";
 
 export interface AuthStore {
   // State
@@ -14,6 +14,7 @@ export interface AuthStore {
   // Actions
   login: (credentials: LoginCredentials) => Promise<any>;
   register: (userData: RegisterData) => Promise<any>;
+  registerBusiness: (businessData: BusinessRegistrationData) => Promise<any>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   changePassword: (newPassword: string) => Promise<void>;
@@ -27,6 +28,7 @@ export interface AuthStore {
 interface Actions {
   login: AuthStore['login'];
   register: AuthStore['register'];
+  registerBusiness: AuthStore['registerBusiness'];
   logout: AuthStore['logout'];
   updateProfile: AuthStore['updateProfile'];
   changePassword: AuthStore['changePassword'];
@@ -49,9 +51,20 @@ export const useAuthStore = create<AuthStore>()(
         try {
           set({ loading: true });
           const result = await authService.login(credentials);
-          // Auth state will be updated by the listener in initialize()
-          // But we also immediately update loading to false for immediate feedback
-          set({ loading: false });
+          
+          // Update user state if login is successful
+          if (result?.user) {
+            const profile = await authService.getProfile();
+            set({
+              user: result.user as User,
+              profile,
+              loading: false,
+              initialized: true,
+            });
+          } else {
+            set({ loading: false });
+          }
+          
           return result;
         } catch (error) {
           set({ loading: false });
@@ -62,9 +75,36 @@ export const useAuthStore = create<AuthStore>()(
       register: async (userData: RegisterData) => {
         try {
           set({ loading: true });
+
+          console.log('Attempting registration with data:', userData);
           const result = await authService.register(userData);
           // Auth state will be updated by the listener in initialize()
           set({ loading: false });
+          return result;
+        } catch (error) {
+          set({ loading: false });
+          throw error;
+        }
+      },
+
+      registerBusiness: async (businessData: BusinessRegistrationData) => {
+        try {
+          set({ loading: true });
+          const result = await authService.registerBusiness(businessData);
+          
+          // If registration is successful and user is created, update state
+          if (result?.user) {
+            const profile = await authService.getProfile();
+            set({
+              user: result.user as User,
+              profile,
+              loading: false,
+              initialized: true,
+            });
+          } else {
+            set({ loading: false });
+          }
+          
           return result;
         } catch (error) {
           set({ loading: false });
@@ -120,17 +160,26 @@ export const useAuthStore = create<AuthStore>()(
       initialize: async () => {
         if (get().initialized) return;
 
-        // First check if there's already a session
+        // Check if user is authenticated
         try {
-          const sessionData = await authService.refreshSession();
-          if (sessionData?.session?.user) {
+          if (authService.isAuthenticated()) {
             const profile = await authService.getProfile();
-            set({
-              user: sessionData.session.user as User,
-              profile,
-              loading: false,
-              initialized: true,
-            });
+            if (profile) {
+              set({
+                user: authService.getCurrentUser() as User,
+                profile,
+                loading: false,
+                initialized: true,
+              });
+            } else {
+              // Token exists but profile fetch failed, likely invalid token
+              set({
+                user: null,
+                profile: null,
+                loading: false,
+                initialized: true,
+              });
+            }
           } else {
             set({
               user: null,
@@ -140,7 +189,7 @@ export const useAuthStore = create<AuthStore>()(
             });
           }
         } catch (error) {
-          console.error("Error checking initial session:", error);
+          console.error("Error checking authentication:", error);
           set({
             user: null,
             profile: null,
@@ -149,31 +198,13 @@ export const useAuthStore = create<AuthStore>()(
           });
         }
 
-        // Listen for auth changes
+        // Auth state change listener (simplified for backend API)
         const { data: { subscription } } = authService.onAuthStateChange(
           async (event, session) => {
             console.log("Auth state changed:", event, session);
-            if (session?.user) {
-              const profile = await authService.getProfile();
-              set({
-                user: session.user as User,
-                profile,
-                loading: false,
-                initialized: true,
-              });
-            } else {
-              set({
-                user: null,
-                profile: null,
-                loading: false,
-                initialized: true,
-              });
-            }
+            // This is a no-op for backend API, auth state is managed differently
           }
         );
-
-        // Note: In a production app, you might want to store this subscription
-        // for cleanup when the store is destroyed
       },
 
       // Internal helper for setting state

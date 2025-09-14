@@ -1,87 +1,141 @@
-import { supabase } from '@/lib/supabase'
-import { LoginCredentials, RegisterData, UserProfile } from '@/types/auth.types'
+import { apiClient } from '@/lib/api'
+import { LoginCredentials, RegisterData, UserProfile, BusinessRegistrationData } from '@/types/auth.types'
+
+interface AuthResponse {
+  user: any;
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}
 
 export class AuthService {
-  async login(credentials: LoginCredentials) {
+  private token: string | null = null;
 
-    console.log('Attempting login with credentials:', credentials)
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: credentials.email,
-      password: credentials.password,
-    })
-
-    console.log('Login data:', data)
-    console.log('Login error:', error)
-
-    if (error) throw error
-    return data
+  constructor() {
+    // Load token from localStorage
+    if (typeof window !== 'undefined') {
+      this.token = localStorage.getItem('auth_token');
+    }
   }
 
-  async register(userData: RegisterData) {
-    const { data, error } = await supabase.auth.signUp({
-      email: userData.email,
-      password: userData.password,
-      options: {
-        data: {
-          full_name: userData.full_name,
-        },
-      },
-    })
-    console.log('Register data:', data)
-    console.log('Register error:', error)
-    if (error) throw error
-    return data
+  private saveToken(token: string) {
+    this.token = token;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', token);
+    }
   }
 
-  async logout() {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+  private clearToken() {
+    this.token = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+    }
   }
 
-  async refreshSession() {
-    const { data, error } = await supabase.auth.refreshSession()
-    if (error) throw error
-    return data
+  private getAuthHeaders(): Record<string, string> {
+    return this.token ? { Authorization: `Bearer ${this.token}` } : {};
   }
 
-  async updateProfile(updates: Partial<UserProfile>) {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update(updates)
-      .eq('id', (await supabase.auth.getUser()).data.user?.id)
-      .select()
-      .single()
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    console.log('Attempting login with credentials:', credentials);
+    
+    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+    
+    console.log('Login successful:', response);
+    this.saveToken(response.access_token);
+    
+    return response;
+  }
 
-    if (error) throw error
-    return data
+  async register(userData: RegisterData): Promise<AuthResponse> {
+    console.log('Attempting registration:', userData);
+    
+    const response = await apiClient.post<AuthResponse>('/auth/register', userData);
+  
+    
+    console.log('Registration successful:', response);
+    this.saveToken(response.access_token);
+    
+    return response;
+  }
+
+  async registerBusiness(businessData: BusinessRegistrationData): Promise<AuthResponse> {
+    console.log('Attempting business registration:', businessData);
+    
+    const response = await apiClient.post<AuthResponse>('/auth/register/business', businessData);
+    
+    console.log('Business registration successful:', response);
+    this.saveToken(response.access_token);
+    
+    return response;
+  }
+
+  async logout(): Promise<void> {
+    try {
+      if (this.token) {
+        await apiClient.post('/auth/logout', {}, this.getAuthHeaders());
+      }
+    } finally {
+      this.clearToken();
+    }
+  }
+
+  async refreshSession(): Promise<any> {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await apiClient.post<AuthResponse>('/auth/refresh', { refresh_token: refreshToken });
+    
+    this.saveToken(response.access_token);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('refresh_token', response.refresh_token);
+    }
+    
+    return { session: response, user: response.user };
+  }
+
+  async updateProfile(updates: Partial<UserProfile>): Promise<UserProfile> {
+    return await apiClient.put<UserProfile>('/auth/profile', updates, this.getAuthHeaders());
   }
 
   async getProfile(): Promise<UserProfile | null> {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', (await supabase.auth.getUser()).data.user?.id)
-      .single()
-
-    if (error) {
-      console.error('Error fetching profile:', error)
-      return null
+    try {
+      if (!this.token) {
+        return null;
+      }
+      
+      const profile = await apiClient.get<UserProfile>('/auth/profile', this.getAuthHeaders());
+      return profile;
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      return null;
     }
-    return data
   }
 
-  async changePassword(newPassword: string) {
-    const { data, error } = await supabase.auth.updateUser({
-      password: newPassword
-    })
-
-    if (error) throw error
-    return data
+  async changePassword(newPassword: string): Promise<void> {
+    await apiClient.post('/auth/change-password', 
+      { current_password: '', new_password: newPassword }, 
+      this.getAuthHeaders()
+    );
   }
 
-  // Auth state listener
+  // For compatibility with existing store
   onAuthStateChange(callback: (event: string, session: any) => void) {
-    return supabase.auth.onAuthStateChange(callback)
+    // This is a simplified implementation
+    // In a real app, you might want to implement WebSocket or polling for auth state changes
+    return { data: { subscription: { unsubscribe: () => {} } } };
+  }
+
+  // Check if user is authenticated
+  isAuthenticated(): boolean {
+    return !!this.token;
+  }
+
+  // Get current user from token (simplified)
+  getCurrentUser() {
+    return this.token ? { id: 'user-id' } : null;
   }
 }
 

@@ -167,7 +167,7 @@ const Login: React.FC = () => {
               <span className="text-sm text-gray-600">
                 {t("noAccount")}{" "}
                 <Link
-                  href={`/${locale}/signup`}
+                  href={`/${locale}/register`}
                   className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
                 >
                   {t("createAccount")}

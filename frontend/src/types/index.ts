@@ -89,7 +89,17 @@ export interface LoginData {
   password: string;
 }
 
-export interface AuthState {
+// Re-export auth types for convenience
+export type { 
+  UserProfile, 
+  AuthState, 
+  LoginCredentials, 
+  RegisterData as SupabaseRegisterData, 
+  AuthResponse 
+} from './auth.types';
+
+// Legacy AuthState - use auth.types.ts for Supabase auth
+export interface LegacyAuthState {
   user: User | null;
   company: Company | null;
   isAuthenticated: boolean;

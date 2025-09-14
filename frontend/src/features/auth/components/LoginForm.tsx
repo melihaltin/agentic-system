@@ -1,24 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { useState, useEffect } from "react";
+import { useAuthStore } from "@/store/auth";
 import { LoginCredentials } from "@/types/auth.types";
 
 export const LoginForm = () => {
-  const { login, authState } = useAuth();
+  const { login, loading, initialize } = useAuthStore();
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: "",
     password: "",
   });
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     try {
-
-    
       await login(credentials);
     } catch (err: any) {
       setError(err.message || "Login failed");
@@ -68,10 +70,10 @@ export const LoginForm = () => {
 
         <button
           type="submit"
-          disabled={authState.loading}
+          disabled={loading}
           className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         >
-          {authState.loading ? "Logging in..." : "Login"}
+          {loading ? "Logging in..." : "Login"}
         </button>
       </form>
     </div>

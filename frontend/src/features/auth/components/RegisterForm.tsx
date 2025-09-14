@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { useState, useEffect } from "react";
+import { useAuthStore } from "@/store/auth";
 import { RegisterData } from "@/types/auth.types";
 
 export const RegisterForm = () => {
-  const { register, authState } = useAuth();
+  const { register, loading, initialize } = useAuthStore();
   const [userData, setUserData] = useState<RegisterData>({
     email: "",
     password: "",
@@ -13,6 +13,10 @@ export const RegisterForm = () => {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,10 +100,10 @@ export const RegisterForm = () => {
 
         <button
           type="submit"
-          disabled={authState.loading}
+          disabled={loading}
           className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
         >
-          {authState.loading ? "Registering..." : "Register"}
+          {loading ? "Registering..." : "Register"}
         </button>
       </form>
     </div>

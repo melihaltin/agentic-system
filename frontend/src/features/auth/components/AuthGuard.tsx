@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../hooks/useAuth";
+import { useAuthStore } from "@/store/auth";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -15,20 +15,24 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   requireAuth = true,
   redirectTo = "/auth/login",
 }) => {
-  const { authState } = useAuth();
+  const { user, loading, initialized, initialize } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!authState.loading && authState.initialized) {
-      if (requireAuth && !authState.user) {
+    initialize();
+  }, [initialize]);
+
+  useEffect(() => {
+    if (!loading && initialized) {
+      if (requireAuth && !user) {
         router.push(redirectTo);
-      } else if (!requireAuth && authState.user) {
+      } else if (!requireAuth && user) {
         router.push("/dashboard");
       }
     }
-  }, [authState, requireAuth, redirectTo, router]);
+  }, [user, loading, initialized, requireAuth, redirectTo, router]);
 
-  if (authState.loading || !authState.initialized) {
+  if (loading || !initialized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -36,11 +40,11 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     );
   }
 
-  if (requireAuth && !authState.user) {
+  if (requireAuth && !user) {
     return null; // Will redirect
   }
 
-  if (!requireAuth && authState.user) {
+  if (!requireAuth && user) {
     return null; // Will redirect
   }
 

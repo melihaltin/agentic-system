@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui";
 import { LogoutButton, UserProfile } from "@/components/auth";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -12,7 +12,7 @@ const Header: React.FC = () => {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const t = useTranslations("admin.header");
   const tDashboard = useTranslations("admin.dashboard");
 

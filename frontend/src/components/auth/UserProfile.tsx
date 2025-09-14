@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/store/auth";
 
 const UserProfile: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuthStore();
 
   if (loading) {
     return (

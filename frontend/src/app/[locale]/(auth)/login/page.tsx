@@ -6,48 +6,53 @@ import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Input, Button } from "@/components/ui";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { useAuth } from "@/contexts/AuthContext";
-
-interface LoginData {
-  email: string;
-  password: string;
-}
+import { useAuthStore } from "@/store/auth";
+import { LoginCredentials } from "@/types/auth.types";
 
 const Login: React.FC = () => {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const { signIn, user, loading } = useAuth();
+  const { login, user, loading, initialize } = useAuthStore();
   const t = useTranslations("auth.login");
   const tValidation = useTranslations("auth.validation");
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [formData, setFormData] = useState<LoginData>({
+  const [formData, setFormData] = useState<LoginCredentials>({
     email: "",
     password: "",
   });
 
-  const [errors, setErrors] = useState<Partial<LoginData>>({});
+  const [errors, setErrors] = useState<Partial<LoginCredentials>>({});
+
+  // Initialize auth store on component mount
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
+      console.log("User detected, redirecting to admin...");
       router.push(`/${locale}/admin`);
     }
   }, [user, loading, router, locale]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev: LoginCredentials) => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
-    if (errors[name as keyof LoginData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    if (errors[name as keyof LoginCredentials]) {
+      setErrors((prev: Partial<LoginCredentials>) => ({
+        ...prev,
+        [name]: undefined,
+      }));
     }
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<LoginData> = {};
+    const newErrors: Partial<LoginCredentials> = {};
 
     if (!formData.email.trim()) {
       newErrors.email = tValidation("required", { field: t("email") });
@@ -70,23 +75,19 @@ const Login: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await signIn(formData.email, formData.password);
+      const result = await login(formData);
+      console.log("Login successful, redirecting...", result);
 
-      if (error) {
-        setErrors({
-          email: error.message,
-          password: error.message,
-        });
-      } else {
-        router.push(`/${locale}/admin`);
-      }
-    } catch (error) {
+      // Use window.location for reliable redirect
+      const adminUrl = `/${locale}/admin`;
+      console.log("Redirecting to:", adminUrl);
+      window.location.href = adminUrl;
+    } catch (error: any) {
       console.error("Login failed:", error);
       setErrors({
-        email: t("invalidCredentials"),
-        password: t("invalidCredentials"),
+        email: error?.message || t("invalidCredentials"),
+        password: error?.message || t("invalidCredentials"),
       });
-    } finally {
       setIsLoading(false);
     }
   };

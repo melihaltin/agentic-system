@@ -6,11 +6,10 @@ import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Input, Button } from "@/components/ui";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/store/auth";
+import { RegisterData } from "@/types/auth.types";
 
-interface SignUpData {
-  email: string;
-  password: string;
+interface SignUpData extends RegisterData {
   confirmPassword: string;
   firstName: string;
   lastName: string;
@@ -20,7 +19,7 @@ const SignUp: React.FC = () => {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const { signUp, user, loading } = useAuth();
+  const { register, user, loading, initialize } = useAuthStore();
   const t = useTranslations("auth.signup");
   const tValidation = useTranslations("auth.validation");
 
@@ -32,9 +31,15 @@ const SignUp: React.FC = () => {
     confirmPassword: "",
     firstName: "",
     lastName: "",
+    full_name: "", // Add this for RegisterData compatibility
   });
 
   const [errors, setErrors] = useState<Partial<SignUpData>>({});
+
+  // Initialize auth store on component mount
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -45,10 +50,22 @@ const SignUp: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev: SignUpData) => {
+      const newData = { ...prev, [name]: value };
+      // Update full_name when firstName or lastName changes
+      if (name === "firstName" || name === "lastName") {
+        const firstName = name === "firstName" ? value : prev.firstName;
+        const lastName = name === "lastName" ? value : prev.lastName;
+        newData.full_name = `${firstName} ${lastName}`.trim();
+      }
+      return newData;
+    });
     // Clear error when user starts typing
     if (errors[name as keyof SignUpData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+      setErrors((prev: Partial<SignUpData>) => ({
+        ...prev,
+        [name]: undefined,
+      }));
     }
   };
 
@@ -94,24 +111,19 @@ const SignUp: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await signUp(formData.email, formData.password, {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
+      await register({
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.full_name,
       });
 
-      if (error) {
-        setErrors({
-          email: error.message,
-        });
-      } else {
-        // Show success message or redirect
-        alert(t("checkEmail"));
-        router.push(`/${locale}/login`);
-      }
-    } catch (error) {
+      // Show success message or redirect
+      alert(t("checkEmail"));
+      router.push(`/${locale}/login`);
+    } catch (error: any) {
       console.error("Sign up failed:", error);
       setErrors({
-        email: t("signUpFailed"),
+        email: error?.message || t("signUpFailed"),
       });
     } finally {
       setIsLoading(false);

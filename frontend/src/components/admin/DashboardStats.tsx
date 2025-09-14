@@ -8,7 +8,7 @@ import { useAuthStore } from "@/store/auth";
 const DashboardStats: React.FC = () => {
   const params = useParams();
   const locale = params.locale as string;
-  const { company } = useAuthStore();
+  const { profile, user } = useAuthStore();
   const t = useTranslations("admin.stats");
 
   const getLocaleDateString = (date: Date) => {
@@ -17,9 +17,9 @@ const DashboardStats: React.FC = () => {
 
   const stats = [
     {
-      title: t("totalUsers"),
-      value: "1",
-      description: t("activeUsers"),
+      title: "Profile",
+      value: profile?.full_name || "Not Set",
+      description: "Your full name",
       icon: (
         <svg
           className="w-6 h-6 text-blue-600"
@@ -31,15 +31,15 @@ const DashboardStats: React.FC = () => {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
           />
         </svg>
       ),
     },
     {
-      title: t("aiAssistant"),
-      value: company?.aiAssistantName || t("notConfigured"),
-      description: t("activeAiAssistant"),
+      title: "Email",
+      value: profile?.email || "Not Set",
+      description: "Your email address",
       icon: (
         <svg
           className="w-6 h-6 text-green-600"
@@ -51,15 +51,15 @@ const DashboardStats: React.FC = () => {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
           />
         </svg>
       ),
     },
     {
-      title: t("status"),
-      value: t("active"),
-      description: t("systemStatus"),
+      title: "Role",
+      value: profile?.role || "user",
+      description: "Account role",
       icon: (
         <svg
           className="w-6 h-6 text-green-600"
@@ -77,11 +77,11 @@ const DashboardStats: React.FC = () => {
       ),
     },
     {
-      title: t("registrationDate"),
-      value: company?.createdAt
-        ? getLocaleDateString(new Date(company.createdAt))
-        : t("unknown"),
-      description: t("accountCreationDate"),
+      title: "Registration Date",
+      value: profile?.created_at
+        ? getLocaleDateString(new Date(profile.created_at))
+        : "Unknown",
+      description: "Account creation date",
       icon: (
         <svg
           className="w-6 h-6 text-purple-600"

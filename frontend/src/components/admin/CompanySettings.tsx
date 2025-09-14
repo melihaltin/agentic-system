@@ -5,24 +5,21 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/store/auth";
 import { Input, Button } from "@/components/ui";
-import { Company } from "@/types";
+import { UserProfile } from "@/types/auth.types";
 
-const CompanySettings: React.FC = () => {
+const ProfileSettings: React.FC = () => {
   const params = useParams();
   const locale = params.locale as string;
-  const { company, updateCompany, isLoading } = useAuthStore();
-  const t = useTranslations("admin.companySettings");
+  const { profile, updateProfile, loading } = useAuthStore();
+  const t = useTranslations("admin.profileSettings");
   const tValidation = useTranslations("auth.validation");
 
-  const [formData, setFormData] = useState<Partial<Company>>({
-    name: company?.name || "",
-    aiAssistantName: company?.aiAssistantName || "",
-    industry: company?.industry || "",
-    website: company?.website || "",
-    description: company?.description || "",
+  const [formData, setFormData] = useState<Partial<UserProfile>>({
+    full_name: profile?.full_name || "",
+    email: profile?.email || "",
   });
 
-  const [errors, setErrors] = useState<Partial<Company>>({});
+  const [errors, setErrors] = useState<Partial<UserProfile>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -30,10 +27,13 @@ const CompanySettings: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev: Partial<UserProfile>) => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
-    if (errors[name as keyof Company]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    if (errors[name as keyof UserProfile]) {
+      setErrors((prev: Partial<UserProfile>) => ({
+        ...prev,
+        [name]: undefined,
+      }));
     }
     // Clear success message when user makes changes
     if (successMessage) {
@@ -42,24 +42,16 @@ const CompanySettings: React.FC = () => {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Company> = {};
+    const newErrors: Partial<UserProfile> = {};
 
-    if (!formData.name?.trim()) {
-      newErrors.name = tValidation("required", { field: t("companyName") });
+    if (!formData.full_name?.trim()) {
+      newErrors.full_name = tValidation("required", { field: "Full Name" });
     }
 
-    if (!formData.aiAssistantName?.trim()) {
-      newErrors.aiAssistantName = tValidation("required", {
-        field: t("aiAssistantName"),
-      });
-    }
-
-    if (formData.website && formData.website.trim()) {
-      try {
-        new URL(formData.website);
-      } catch {
-        newErrors.website = tValidation("invalidUrl");
-      }
+    if (!formData.email?.trim()) {
+      newErrors.email = tValidation("required", { field: "Email" });
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = tValidation("invalidEmail");
     }
 
     setErrors(newErrors);
@@ -72,9 +64,9 @@ const CompanySettings: React.FC = () => {
     if (!validateForm()) return;
 
     try {
-      await updateCompany(formData);
+      await updateProfile(formData);
       setIsEditing(false);
-      setSuccessMessage(t("updateSuccess"));
+      setSuccessMessage("Profile updated successfully!");
       setTimeout(() => setSuccessMessage(""), 5000);
     } catch (error) {
       console.error("Update failed:", error);
@@ -82,13 +74,10 @@ const CompanySettings: React.FC = () => {
   };
 
   const handleCancel = () => {
-    // Reset form data to original company data
+    // Reset form data to original profile data
     setFormData({
-      name: company?.name || "",
-      aiAssistantName: company?.aiAssistantName || "",
-      industry: company?.industry || "",
-      website: company?.website || "",
-      description: company?.description || "",
+      full_name: profile?.full_name || "",
+      email: profile?.email || "",
     });
     setErrors({});
     setIsEditing(false);
@@ -99,14 +88,16 @@ const CompanySettings: React.FC = () => {
     <div className="bg-white shadow-sm rounded-lg">
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">{t("title")}</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Profile Settings
+          </h2>
           {!isEditing && (
             <Button
               onClick={() => setIsEditing(true)}
               variant="primary"
               size="sm"
             >
-              {t("edit")}
+              Edit Profile
             </Button>
           )}
         </div>
@@ -139,80 +130,38 @@ const CompanySettings: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 gap-6 mb-6">
             <Input
-              label={t("companyName")}
-              name="name"
-              value={formData.name}
+              label="Full Name"
+              name="full_name"
+              value={formData.full_name || ""}
               onChange={handleInputChange}
-              error={errors.name}
+              error={errors.full_name}
               disabled={!isEditing}
               required
             />
 
             <Input
-              label={t("aiAssistantName")}
-              name="aiAssistantName"
-              value={formData.aiAssistantName}
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email || ""}
               onChange={handleInputChange}
-              error={errors.aiAssistantName}
+              error={errors.email}
               disabled={!isEditing}
               required
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <Input
-              label={t("industry")}
-              name="industry"
-              value={formData.industry}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              placeholder={t("industryPlaceholder")}
-            />
-
-            <Input
-              label={t("website")}
-              name="website"
-              type="url"
-              value={formData.website}
-              onChange={handleInputChange}
-              error={errors.website}
-              disabled={!isEditing}
-              placeholder={t("websitePlaceholder")}
-            />
-          </div>
-
-          <div className="mb-6">
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              {t("description")}
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              rows={4}
-              value={formData.description}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                !isEditing ? "bg-gray-50 cursor-not-allowed" : ""
-              }`}
-              placeholder={t("descriptionPlaceholder")}
-            />
-          </div>
-
-          {/* Company Creation Date */}
-          {company?.createdAt && (
+          {/* Profile Creation Date */}
+          {profile?.created_at && (
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="text-sm font-medium text-gray-900 mb-2">
-                {t("systemInfo")}
+                System Information
               </h3>
               <p className="text-sm text-gray-600">
-                {t("registrationDate")}:{" "}
-                {new Date(company.createdAt).toLocaleDateString(
+                Registration Date:{" "}
+                {new Date(profile.created_at).toLocaleDateString(
                   locale === "tr" ? "tr-TR" : "en-US",
                   {
                     year: "numeric",
@@ -232,12 +181,12 @@ const CompanySettings: React.FC = () => {
                 type="button"
                 variant="secondary"
                 onClick={handleCancel}
-                disabled={isLoading}
+                disabled={loading}
               >
-                {t("cancel")}
+                Cancel
               </Button>
-              <Button type="submit" isLoading={isLoading} disabled={isLoading}>
-                {isLoading ? t("saving") : t("save")}
+              <Button type="submit" isLoading={loading} disabled={loading}>
+                {loading ? "Saving..." : "Save"}
               </Button>
             </div>
           )}
@@ -247,4 +196,4 @@ const CompanySettings: React.FC = () => {
   );
 };
 
-export default CompanySettings;
+export default ProfileSettings;

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui";
 
 interface LogoutButtonProps {
@@ -17,16 +17,12 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const { signOut, user } = useAuth();
+  const { logout, user } = useAuthStore();
 
   const handleLogout = async () => {
     try {
-      const { error } = await signOut();
-      if (error) {
-        console.error("Logout failed:", error);
-      } else {
-        router.push(`/${locale}/login`);
-      }
+      await logout();
+      router.push(`/${locale}/login`);
     } catch (error) {
       console.error("Logout failed:", error);
     }

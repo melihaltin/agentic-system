@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import ProtectedRoute from "@/components/ProtectedRoute";
+
 import Header from "@/components/Header";
 import DashboardStats from "@/components/admin/DashboardStats";
 import CompanySettings from "@/components/admin/CompanySettings";
@@ -14,7 +14,7 @@ const AdminDashboard: React.FC = () => {
   const tHelp = useTranslations("admin.help");
 
   return (
-    <ProtectedRoute>
+    <div>
       <div className="min-h-screen bg-gray-50">
         <Header />
 
@@ -154,7 +154,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         </main>
       </div>
-    </ProtectedRoute>
+    </div>
   );
 };
 

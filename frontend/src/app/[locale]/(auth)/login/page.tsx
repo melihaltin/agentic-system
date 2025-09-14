@@ -34,7 +34,7 @@ const Login: React.FC = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
-      console.log("User detected, redirecting to admin...");
+      console.log("User:", user);
       router.push(`/${locale}/admin`);
     }
   }, [user, loading, router, locale]);
@@ -77,11 +77,6 @@ const Login: React.FC = () => {
     try {
       const result = await login(formData);
       console.log("Login successful, redirecting...", result);
-
-      // Use window.location for reliable redirect
-      const adminUrl = `/${locale}/admin`;
-      console.log("Redirecting to:", adminUrl);
-      window.location.href = adminUrl;
     } catch (error: any) {
       console.error("Login failed:", error);
       setErrors({

@@ -11,7 +11,7 @@ export default function Home() {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = true;
   const t = useTranslations("common");
 
   useEffect(() => {

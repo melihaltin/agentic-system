@@ -160,6 +160,15 @@
       "subtitle": "Manage your AI Assistant system from here",
       "welcome": "Welcome"
     },
+    "sidebar": {
+      "adminPanel": "Admin Panel",
+      "businessSettings": "Business Settings",
+      "myAgents": "My Agents",
+      "analytics": "Analytics",
+      "settings": "Settings",
+      "expandSidebar": "Expand Sidebar",
+      "collapseSidebar": "Collapse Sidebar"
+    },
     "header": {
       "logout": "Logout"
     },

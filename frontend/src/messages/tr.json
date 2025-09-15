@@ -155,6 +155,15 @@
     }
   },
   "admin": {
+    "sidebar": {
+      "adminPanel": "Yönetim Paneli",
+      "businessSettings": "İşletme Ayarları",
+      "myAgents": "Ajanlarım",
+      "analytics": "Analitik",
+      "settings": "Ayarlar",
+      "expandSidebar": "Kenar Çubuğunu Genişlet",
+      "collapseSidebar": "Kenar Çubuğunu Daralt"
+    },
     "dashboard": {
       "title": "Yönetim Paneli",
       "subtitle": "AI Asistan sisteminizi buradan yönetebilirsiniz",

@@ -6,10 +6,6 @@ export interface CompanyProfile {
   company_name: string
   phone_number: string
   business_category: string
-  platform: string
-  api_key?: string
-  api_secret?: string
-  additional_config?: Record<string, any>
   created_at: string
   updated_at: string
 }
@@ -50,10 +46,6 @@ export interface BusinessRegistrationData {
   company_name: string
   phone_number: string
   business_category: string
-  platform: string
-  api_key?: string
-  api_secret?: string
-  additional_config?: Record<string, any>
 }
 
 export interface AuthResponse {

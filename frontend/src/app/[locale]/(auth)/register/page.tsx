@@ -16,12 +16,10 @@ import {
 import { BusinessRegistrationData as AuthBusinessRegistrationData } from "@/types/auth.types";
 
 // Constants
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 2;
 const STEP_IDS = {
   BASIC_INFO: 1,
   CATEGORY: 2,
-  PLATFORM: 3,
-  API_SETTINGS: 4,
 } as const;
 
 // Types
@@ -43,10 +41,6 @@ const useBusinessRegistration = () => {
     email: "",
     password: "",
     category: "",
-    platform: "",
-    apiKey: "",
-    apiSecret: "",
-    additionalConfig: {},
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -63,19 +57,6 @@ const useBusinessRegistration = () => {
       return prev;
     });
   }, []);
-
-  const handleAdditionalConfigChange = useCallback(
-    (key: string, value: string) => {
-      setFormData((prev) => ({
-        ...prev,
-        additionalConfig: {
-          ...prev.additionalConfig,
-          [key]: value,
-        },
-      }));
-    },
-    []
-  );
 
   const validateCurrentStep = useCallback(
     (tValidation: any): boolean => {
@@ -104,18 +85,6 @@ const useBusinessRegistration = () => {
         case STEP_IDS.CATEGORY:
           if (!formData.category) {
             newErrors.category = tValidation("categoryRequired");
-          }
-          break;
-
-        case STEP_IDS.PLATFORM:
-          if (!formData.platform) {
-            newErrors.platform = tValidation("platformRequired");
-          }
-          break;
-
-        case STEP_IDS.API_SETTINGS:
-          if (!formData.apiKey.trim()) {
-            newErrors.apiKey = tValidation("apiKeyRequired");
           }
           break;
       }
@@ -159,10 +128,6 @@ const useBusinessRegistration = () => {
           company_name: formData.businessName,
           phone_number: formData.phoneNumber,
           business_category: formData.category,
-          platform: formData.platform,
-          api_key: formData.apiKey,
-          api_secret: formData.apiSecret,
-          additional_config: formData.additionalConfig,
         };
 
         const result = await registerBusiness(businessRegistrationData);
@@ -183,7 +148,6 @@ const useBusinessRegistration = () => {
     formData,
     errors,
     handleInputChange,
-    handleAdditionalConfigChange,
     handleNext,
     handlePrevious,
     handleSubmit,
@@ -287,159 +251,6 @@ const CategoryStep = React.memo<{
   </div>
 ));
 
-const PlatformStep = React.memo<{
-  formData: FormData;
-  errors: FormErrors;
-  onPlatformChange: (platform: string) => void;
-  platformOptions: Array<{
-    value: string;
-    label: string;
-    icon: string;
-  }>;
-  t: any;
-}>(({ formData, errors, onPlatformChange, platformOptions, t }) => (
-  <div className="space-y-6">
-    <h2 className="text-2xl font-bold text-gray-900 mb-6">
-      {t("platform.title")}
-    </h2>
-
-    {formData.category && (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {platformOptions.map((platform) => (
-          <Card
-            key={platform.value}
-            isSelected={formData.platform === platform.value}
-            onClick={() => onPlatformChange(platform.value)}
-            className="text-center cursor-pointer hover:shadow-md transition-shadow"
-          >
-            <div className="text-3xl mb-3">{platform.icon}</div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              {platform.label}
-            </h3>
-          </Card>
-        ))}
-      </div>
-    )}
-
-    {errors.platform && (
-      <p className="text-sm text-red-600">{errors.platform}</p>
-    )}
-  </div>
-));
-
-const ApiSettingsStep = React.memo<{
-  formData: FormData;
-  errors: FormErrors;
-  onInputChange: (name: string, value: string) => void;
-  onAdditionalConfigChange: (key: string, value: string) => void;
-  apiConfig: {
-    apiKey: string;
-    apiSecret: string;
-    additionalFields: Array<{ key: string; label: string }>;
-  };
-  t: any;
-}>(
-  ({
-    formData,
-    errors,
-    onInputChange,
-    onAdditionalConfigChange,
-    apiConfig,
-    t,
-  }) => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
-        {t("api.title")}
-      </h2>
-
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-6 border border-blue-200">
-        <div className="flex items-center mb-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
-            <svg
-              className="w-6 h-6 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
-          </div>
-          <div>
-            <h3 className="font-semibold text-blue-900 text-lg">
-              {formData.platform === "custom"
-                ? t("platforms.custom")
-                : formData.platform}{" "}
-              - {t("api.integrationTitle")}
-            </h3>
-            <p className="text-sm text-blue-700">{t("api.integrationDesc")}</p>
-          </div>
-        </div>
-      </div>
-
-      <Input
-        label={apiConfig.apiKey}
-        name="apiKey"
-        value={formData.apiKey}
-        onChange={(e) => onInputChange("apiKey", e.target.value)}
-        error={errors.apiKey}
-        type="password"
-        required
-      />
-
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg
-              className="h-5 w-5 text-yellow-400"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">
-              {t("api.securityTitle")}
-            </h3>
-            <p className="mt-2 text-sm text-yellow-700">
-              {t("api.securityDesc")}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {apiConfig.apiSecret && (
-        <Input
-          label={apiConfig.apiSecret}
-          name="apiSecret"
-          value={formData.apiSecret || ""}
-          onChange={(e) => onInputChange("apiSecret", e.target.value)}
-          type="password"
-        />
-      )}
-
-      {apiConfig.additionalFields.map((field) => (
-        <Input
-          key={field.key}
-          label={field.label}
-          name={field.key}
-          value={formData.additionalConfig?.[field.key] || ""}
-          onChange={(e) => onAdditionalConfigChange(field.key, e.target.value)}
-        />
-      ))}
-    </div>
-  )
-);
-
 // Main Component
 const BusinessRegistration: React.FC = () => {
   const router = useRouter();
@@ -455,7 +266,6 @@ const BusinessRegistration: React.FC = () => {
     formData,
     errors,
     handleInputChange,
-    handleAdditionalConfigChange,
     handleNext,
     handlePrevious,
     handleSubmit,
@@ -492,72 +302,6 @@ const BusinessRegistration: React.FC = () => {
     [t]
   );
 
-  const platformOptions = useMemo(() => {
-    const platforms = {
-      "e-commerce": [
-        { value: "shopify", label: t("platforms.shopify"), icon: "🛍️" },
-        { value: "woocommerce", label: t("platforms.woocommerce"), icon: "🏪" },
-        { value: "magento", label: t("platforms.magento"), icon: "📦" },
-        { value: "bigcommerce", label: t("platforms.bigcommerce"), icon: "💼" },
-        { value: "custom", label: t("platforms.custom"), icon: "⚡" },
-      ],
-      "car-rental": [
-        { value: "turo", label: t("platforms.turo"), icon: "🚙" },
-        { value: "getaround", label: t("platforms.getaround"), icon: "🚘" },
-        { value: "zipcar", label: t("platforms.zipcar"), icon: "🔑" },
-        { value: "custom", label: t("platforms.custom"), icon: "⚡" },
-      ],
-      restaurant: [
-        { value: "ubereats", label: t("platforms.ubereats"), icon: "🍕" },
-        { value: "doordash", label: t("platforms.doordash"), icon: "🥡" },
-        { value: "grubhub", label: t("platforms.grubhub"), icon: "🍔" },
-        { value: "custom", label: t("platforms.custom"), icon: "⚡" },
-      ],
-      "service-based": [
-        { value: "calendly", label: t("platforms.calendly"), icon: "📅" },
-        { value: "square", label: t("platforms.square"), icon: "💳" },
-        { value: "stripe", label: t("platforms.stripe"), icon: "💰" },
-        { value: "custom", label: t("platforms.custom"), icon: "⚡" },
-      ],
-    };
-    return platforms[formData.category as keyof typeof platforms] || [];
-  }, [formData.category, t]);
-
-  const apiConfig = useMemo(() => {
-    const configs = {
-      shopify: {
-        apiKey: t("apiFields.shopifyApiKey"),
-        apiSecret: t("apiFields.shopifySecret"),
-        additionalFields: [{ key: "shopUrl", label: t("apiFields.shopUrl") }],
-      },
-      woocommerce: {
-        apiKey: t("apiFields.consumerKey"),
-        apiSecret: t("apiFields.consumerSecret"),
-        additionalFields: [{ key: "storeUrl", label: t("apiFields.storeUrl") }],
-      },
-      stripe: {
-        apiKey: t("apiFields.publishableKey"),
-        apiSecret: t("apiFields.secretKey"),
-        additionalFields: [],
-      },
-      calendly: {
-        apiKey: t("apiFields.personalAccessToken"),
-        apiSecret: "",
-        additionalFields: [
-          { key: "organizationUri", label: t("apiFields.organizationUri") },
-        ],
-      },
-      default: {
-        apiKey: t("apiFields.apiKey"),
-        apiSecret: t("apiFields.apiSecret"),
-        additionalFields: [],
-      },
-    };
-    return (
-      configs[formData.platform as keyof typeof configs] || configs.default
-    );
-  }, [formData.platform, t]);
-
   const steps = useMemo(
     () => [
       {
@@ -573,20 +317,6 @@ const BusinessRegistration: React.FC = () => {
         description: t("steps.categoryDesc"),
         isCompleted: currentStep > STEP_IDS.CATEGORY,
         isActive: currentStep === STEP_IDS.CATEGORY,
-      },
-      {
-        id: STEP_IDS.PLATFORM,
-        title: t("steps.platform"),
-        description: t("steps.platformDesc"),
-        isCompleted: currentStep > STEP_IDS.PLATFORM,
-        isActive: currentStep === STEP_IDS.PLATFORM,
-      },
-      {
-        id: STEP_IDS.API_SETTINGS,
-        title: t("steps.apiSettings"),
-        description: t("steps.apiSettingsDesc"),
-        isCompleted: currentStep > STEP_IDS.API_SETTINGS,
-        isActive: currentStep === STEP_IDS.API_SETTINGS,
       },
     ],
     [currentStep, t]
@@ -638,27 +368,6 @@ const BusinessRegistration: React.FC = () => {
             t={t}
           />
         );
-      case STEP_IDS.PLATFORM:
-        return (
-          <PlatformStep
-            formData={formData}
-            errors={errors}
-            onPlatformChange={handlePlatformChange}
-            platformOptions={platformOptions}
-            t={t}
-          />
-        );
-      case STEP_IDS.API_SETTINGS:
-        return (
-          <ApiSettingsStep
-            formData={formData}
-            errors={errors}
-            onInputChange={handleInputChange}
-            onAdditionalConfigChange={handleAdditionalConfigChange}
-            apiConfig={apiConfig}
-            t={t}
-          />
-        );
       default:
         return null;
     }
@@ -667,12 +376,8 @@ const BusinessRegistration: React.FC = () => {
     formData,
     errors,
     handleInputChange,
-    handleAdditionalConfigChange,
     handleCategoryChange,
-    handlePlatformChange,
     businessCategories,
-    platformOptions,
-    apiConfig,
     t,
   ]);
 

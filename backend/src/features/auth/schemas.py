@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, validator
-from typing import Optional, Dict, Any
+from typing import Optional
 
 
 class RegisterRequest(BaseModel):
@@ -21,10 +21,6 @@ class BusinessRegistrationRequest(BaseModel):
     company_name: str
     phone_number: str
     business_category: str
-    platform: str
-    api_key: Optional[str] = None
-    api_secret: Optional[str] = None
-    additional_config: Optional[Dict[str, Any]] = {}
 
     @validator("password")
     def validate_password(cls, v):

@@ -84,9 +84,6 @@ export interface BusinessSettings {
   companyEmail: string;
   companyPhone: string;
   businessCategory: string;
-  platform: string;
-  apiKey: string;
-  apiSecret: string;
   address?: string;
   website?: string;
   timezone: string;

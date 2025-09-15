@@ -9,9 +9,6 @@ const getMockBusinessSettings = (): BusinessSettings => ({
   companyEmail: "contact@democompany.com",
   companyPhone: "+1 (555) 123-4567",
   businessCategory: "e-commerce",
-  platform: "shopify",
-  apiKey: "sk_test_123456789",
-  apiSecret: "sk_secret_987654321",
   address: "123 Business Ave, Suite 100, New York, NY 10001",
   website: "https://democompany.com",
   timezone: "America/New_York",
@@ -263,25 +260,25 @@ const BusinessSettingsForm: React.FC = () => {
         </div>
       </div>
 
-      {/* API Configuration */}
+      {/* Business Settings */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">
-            API Configuration
+            Business Settings
           </h3>
           <p className="text-sm text-gray-600 mt-1">
-            Platform integration settings
+            Regional and currency settings
           </p>
         </div>
 
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Platform
+              Timezone
             </label>
             <select
-              name="platform"
-              value={settings.platform}
+              name="timezone"
+              value={settings.timezone}
               onChange={handleInputChange}
               disabled={!isEditing}
               className={`
@@ -295,10 +292,12 @@ const BusinessSettingsForm: React.FC = () => {
                 transition-colors
               `}
             >
-              <option value="shopify">Shopify</option>
-              <option value="woocommerce">WooCommerce</option>
-              <option value="magento">Magento</option>
-              <option value="custom">Custom API</option>
+              <option value="America/New_York">Eastern Time</option>
+              <option value="America/Chicago">Central Time</option>
+              <option value="America/Denver">Mountain Time</option>
+              <option value="America/Los_Angeles">Pacific Time</option>
+              <option value="Europe/London">London</option>
+              <option value="Europe/Istanbul">Istanbul</option>
             </select>
           </div>
 
@@ -327,52 +326,6 @@ const BusinessSettingsForm: React.FC = () => {
               <option value="TRY">TRY - Turkish Lira</option>
               <option value="GBP">GBP - British Pound</option>
             </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              API Key
-            </label>
-            <input
-              type="password"
-              name="apiKey"
-              value={settings.apiKey}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              className={`
-                w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
-              `}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              API Secret
-            </label>
-            <input
-              type="password"
-              name="apiSecret"
-              value={settings.apiSecret}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              className={`
-                w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
-              `}
-            />
           </div>
         </div>
       </div>

@@ -61,10 +61,6 @@ class AuthRepository:
                 "company_name": request.company_name,
                 "phone_number": request.phone_number,
                 "business_category": request.business_category,
-                "platform": request.platform,
-                "api_key": request.api_key,
-                "api_secret": request.api_secret,
-                "additional_config": request.additional_config or {},
             }
 
             try:

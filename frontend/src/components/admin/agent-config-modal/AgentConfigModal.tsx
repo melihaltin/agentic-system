@@ -7,12 +7,12 @@ import {
   getAgentConfigTabs,
 } from "@/features/admin/utils/agent-helpers";
 import { useVoiceOptions } from "@/features/admin/hooks/useVoiceOptions";
-import { GeneralSettings } from "./agent-config-modal/GeneralSettings";
-import { IntegrationSettings } from "./agent-config-modal/IntegrationSettings";
-import { ModalFooter } from "./agent-config-modal/ModalFooter";
-import { ModalHeader } from "./agent-config-modal/ModalHeader";
-import { VoiceSettings } from "./agent-config-modal/VoiceSettings";
-import { ModalTabs } from "./agent-config-modal/ModalTabs";
+import { GeneralSettings } from "./GeneralSettings";
+import { IntegrationSettings } from "./IntegrationSettings";
+import { ModalFooter } from "./ModalFooter";
+import { ModalHeader } from "./ModalHeader";
+import { VoiceSettings } from "./VoiceSettings";
+import { ModalTabs } from "./ModalTabs";
 
 interface AgentConfigModalProps {
   isOpen: boolean;

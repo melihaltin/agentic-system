@@ -41,10 +41,6 @@ export const LANGUAGE_OPTIONS = [
 // E-commerce platforms for integration
 export const ECOMMERCE_PLATFORMS = [
   { id: 'shopify', name: 'Shopify', description: 'Shopify e-commerce platform' },
-  { id: 'woocommerce', name: 'WooCommerce', description: 'WordPress WooCommerce plugin' },
-  { id: 'magento', name: 'Magento', description: 'Magento e-commerce platform' },
-  { id: 'prestashop', name: 'PrestaShop', description: 'PrestaShop e-commerce platform' },
-  { id: 'bigcommerce', name: 'BigCommerce', description: 'BigCommerce platform' },
 ] as const;
 
 // Car rental platforms

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { AgentType } from "@/types/admin.types";
 import { useAgents } from "@/features/admin/hooks/useAgents";
 import AgentCard from "./AgentCard";
-import AgentConfigModal from "./AgentConfigModal";
+import AgentConfigModal from "./agent-config-modal/AgentConfigModal";
 
 const MyAgentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");

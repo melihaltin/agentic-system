@@ -61,8 +61,6 @@ class ProfileUpdateRequest(BaseModel):
     business_category: Optional[str] = None
     address: Optional[str] = None
     website: Optional[str] = None
-    timezone: Optional[str] = None
-    currency: Optional[str] = None
 
 
 class ChangePasswordRequest(BaseModel):

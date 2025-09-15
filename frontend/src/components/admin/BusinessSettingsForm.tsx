@@ -21,15 +21,7 @@ const BusinessSettingsForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Load settings from profile - Bu effect her profile değişiminde çalışacak
   useEffect(() => {
-    console.log("🔄 Profile changed in BusinessSettingsForm:", profile);
-    console.log("🔍 Profile type:", typeof profile);
-    console.log(
-      "🔍 Profile keys:",
-      profile ? Object.keys(profile) : "No profile"
-    );
-
     if (profile) {
       setSettings({
         companyName: profile.company?.company_name || "",
@@ -41,29 +33,23 @@ const BusinessSettingsForm: React.FC = () => {
         timezone: profile.company?.timezone || "America/New_York",
         currency: profile.company?.currency || "USD",
       });
-
       setIsEditing(false);
     }
-  }, [profile]); // profile dependency'si önemli
+  }, [profile]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setSettings((prev) => ({ ...prev, [name]: value }));
-
-    // Clear success message when user makes changes
-    if (successMessage) {
-      setSuccessMessage("");
-    }
+    if (successMessage) setSuccessMessage("");
   };
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      // Update profile via API
       await updateProfile({
-        full_name: profile?.full_name, // Keep existing full_name
+        full_name: profile?.full_name,
         company_name: settings.companyName,
         phone_number: settings.companyPhone,
         business_category: settings.businessCategory,
@@ -72,17 +58,11 @@ const BusinessSettingsForm: React.FC = () => {
         timezone: settings.timezone,
         currency: settings.currency,
       });
-
-      // Refresh profile to get latest data
       await refreshProfile();
-
       setIsEditing(false);
       setSuccessMessage("Business settings updated successfully!");
-
-      // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(""), 5000);
     } catch (error: any) {
-      console.error("Error saving settings:", error);
       const errorMessage =
         error?.message || "Failed to update settings. Please try again.";
       setSuccessMessage(`Error: ${errorMessage}`);
@@ -93,7 +73,6 @@ const BusinessSettingsForm: React.FC = () => {
   };
 
   const handleCancel = () => {
-    // Reset to current profile data
     if (profile) {
       setSettings({
         companyName: profile.company?.company_name || "",
@@ -110,25 +89,25 @@ const BusinessSettingsForm: React.FC = () => {
     setSuccessMessage("");
   };
 
-  // Show loading state while auth is initializing or profile is loading
   if (!initialized || (loading && !profile)) {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-3 text-gray-600">Loading business settings...</span>
+        <span className="ml-3 text-gray-700 font-medium">
+          Loading business settings...
+        </span>
       </div>
     );
   }
 
-  // Show message if no profile is found after initialization
   if (initialized && !profile && !loading) {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="text-center">
-          <p className="text-gray-600">No profile data found.</p>
+          <p className="text-gray-700 font-medium">No profile data found.</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-2 text-blue-600 hover:text-blue-700"
+            className="mt-2 text-blue-700 font-semibold hover:text-blue-900 underline"
           >
             Refresh Page
           </button>
@@ -138,21 +117,21 @@ const BusinessSettingsForm: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Success/Error Message */}
       {successMessage && (
         <div
           className={`${
             successMessage.startsWith("Error:")
-              ? "bg-red-50 border-red-200"
-              : "bg-green-50 border-green-200"
-          } border rounded-lg p-4`}
+              ? "bg-red-100 border-red-400"
+              : "bg-green-100 border-green-400"
+          } border rounded-lg p-4 shadow-sm`}
         >
           <div className="flex items-center">
             <div className="flex-shrink-0">
               {successMessage.startsWith("Error:") ? (
                 <svg
-                  className="h-5 w-5 text-red-400"
+                  className="h-5 w-5 text-red-500"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -164,7 +143,7 @@ const BusinessSettingsForm: React.FC = () => {
                 </svg>
               ) : (
                 <svg
-                  className="h-5 w-5 text-green-400"
+                  className="h-5 w-5 text-green-600"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -178,7 +157,7 @@ const BusinessSettingsForm: React.FC = () => {
             </div>
             <div className="ml-3">
               <p
-                className={`text-sm font-medium ${
+                className={`text-sm font-semibold ${
                   successMessage.startsWith("Error:")
                     ? "text-red-800"
                     : "text-green-800"
@@ -192,20 +171,20 @@ const BusinessSettingsForm: React.FC = () => {
       )}
 
       {/* Company Information */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-2xl shadow-md border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-bold text-gray-900">
               Company Information
             </h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               Basic information about your company
             </p>
           </div>
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              className="px-5 py-2 text-sm font-bold text-white bg-blue-600 rounded-xl shadow hover:bg-blue-700 transition-all"
             >
               Edit Settings
             </button>
@@ -214,7 +193,7 @@ const BusinessSettingsForm: React.FC = () => {
 
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-1">
               Company Name
             </label>
             <input
@@ -225,19 +204,17 @@ const BusinessSettingsForm: React.FC = () => {
               disabled={!isEditing}
               className={`
                 w-full px-3 py-2 border border-gray-300 rounded-lg
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
+                text-gray-900 font-medium placeholder-gray-400
+                ${isEditing ? "bg-white" : "bg-gray-100"}
+                focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
+                transition-all
               `}
+              placeholder="Enter company name"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-1">
               Company Email
             </label>
             <input
@@ -248,19 +225,17 @@ const BusinessSettingsForm: React.FC = () => {
               disabled={!isEditing}
               className={`
                 w-full px-3 py-2 border border-gray-300 rounded-lg
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
+                text-gray-900 font-medium placeholder-gray-400
+                ${isEditing ? "bg-white" : "bg-gray-100"}
+                focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
+                transition-all
               `}
+              placeholder="Enter company email"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-1">
               Phone Number
             </label>
             <input
@@ -271,19 +246,17 @@ const BusinessSettingsForm: React.FC = () => {
               disabled={!isEditing}
               className={`
                 w-full px-3 py-2 border border-gray-300 rounded-lg
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
+                text-gray-900 font-medium placeholder-gray-400
+                ${isEditing ? "bg-white" : "bg-gray-100"}
+                focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
+                transition-all
               `}
+              placeholder="Enter phone number"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-1">
               Business Category
             </label>
             <select
@@ -293,13 +266,10 @@ const BusinessSettingsForm: React.FC = () => {
               disabled={!isEditing}
               className={`
                 w-full px-3 py-2 border border-gray-300 rounded-lg
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
+                text-gray-900 font-medium
+                ${isEditing ? "bg-white" : "bg-gray-100"}
+                focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
+                transition-all
               `}
             >
               <option value="e-commerce">E-commerce</option>
@@ -311,7 +281,7 @@ const BusinessSettingsForm: React.FC = () => {
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-1">
               Address
             </label>
             <input
@@ -323,19 +293,16 @@ const BusinessSettingsForm: React.FC = () => {
               placeholder="Enter your business address"
               className={`
                 w-full px-3 py-2 border border-gray-300 rounded-lg
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
+                text-gray-900 font-medium placeholder-gray-400
+                ${isEditing ? "bg-white" : "bg-gray-100"}
+                focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
+                transition-all
               `}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-1">
               Website
             </label>
             <input
@@ -347,13 +314,10 @@ const BusinessSettingsForm: React.FC = () => {
               placeholder="https://yourwebsite.com"
               className={`
                 w-full px-3 py-2 border border-gray-300 rounded-lg
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
+                text-gray-900 font-medium placeholder-gray-400
+                ${isEditing ? "bg-white" : "bg-gray-100"}
+                focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
+                transition-all
               `}
             />
           </div>
@@ -361,19 +325,16 @@ const BusinessSettingsForm: React.FC = () => {
       </div>
 
       {/* Business Settings */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-2xl shadow-md border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Business Settings
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
+          <h3 className="text-lg font-bold text-gray-900">Business Settings</h3>
+          <p className="text-sm text-gray-500 mt-1">
             Regional and currency settings
           </p>
         </div>
-
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-1">
               Timezone
             </label>
             <select
@@ -383,13 +344,10 @@ const BusinessSettingsForm: React.FC = () => {
               disabled={!isEditing}
               className={`
                 w-full px-3 py-2 border border-gray-300 rounded-lg
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
+                text-gray-900 font-medium
+                ${isEditing ? "bg-white" : "bg-gray-100"}
+                focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
+                transition-all
               `}
             >
               <option value="America/New_York">Eastern Time</option>
@@ -398,33 +356,6 @@ const BusinessSettingsForm: React.FC = () => {
               <option value="America/Los_Angeles">Pacific Time</option>
               <option value="Europe/London">London</option>
               <option value="Europe/Istanbul">Istanbul</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Currency
-            </label>
-            <select
-              name="currency"
-              value={settings.currency}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              className={`
-                w-full px-3 py-2 border border-gray-300 rounded-lg
-                ${isEditing ? "bg-white" : "bg-gray-50"}
-                ${
-                  isEditing
-                    ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    : ""
-                }
-                transition-colors
-              `}
-            >
-              <option value="USD">USD - US Dollar</option>
-              <option value="EUR">EUR - Euro</option>
-              <option value="TRY">TRY - Turkish Lira</option>
-              <option value="GBP">GBP - British Pound</option>
             </select>
           </div>
         </div>
@@ -436,14 +367,14 @@ const BusinessSettingsForm: React.FC = () => {
           <button
             onClick={handleCancel}
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="px-5 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-xl shadow hover:bg-gray-100 transition-all disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+            className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl shadow hover:from-blue-700 hover:to-blue-600 transition-all disabled:opacity-50 flex items-center space-x-2"
           >
             {isLoading && (
               <svg

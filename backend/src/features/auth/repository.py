@@ -150,8 +150,6 @@ class AuthRepository:
                     "business_category": profile_data.get("business_category", ""),
                     "address": profile_data.get("address", ""),
                     "website": profile_data.get("website", ""),
-                    "timezone": profile_data.get("timezone", "America/New_York"),
-                    "currency": profile_data.get("currency", "USD"),
                 },
             }
 

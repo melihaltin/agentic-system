@@ -56,6 +56,13 @@ class AuthResponse(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
+    company_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    business_category: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    timezone: Optional[str] = None
+    currency: Optional[str] = None
 
 
 class ChangePasswordRequest(BaseModel):

@@ -76,7 +76,7 @@ async def get_profile(
     auth_service: AuthService = Depends(get_auth_service),
 ):
     """Get user profile"""
-    return await auth_service.get_profile(current_user["id"])
+    return await auth_service.get_profile(current_user.id)
 
 
 @router.put("/profile")
@@ -86,7 +86,7 @@ async def update_profile(
     auth_service: AuthService = Depends(get_auth_service),
 ):
     """Update user profile"""
-    return await auth_service.update_profile(current_user["id"], request)
+    return await auth_service.update_profile(current_user.id, request)
 
 
 @router.post("/change-password")

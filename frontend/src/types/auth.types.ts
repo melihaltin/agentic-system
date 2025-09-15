@@ -6,6 +6,10 @@ export interface CompanyProfile {
   company_name: string
   phone_number: string
   business_category: string
+  address?: string
+  website?: string
+  timezone?: string
+  currency?: string
   created_at: string
   updated_at: string
 }
@@ -46,6 +50,18 @@ export interface BusinessRegistrationData {
   company_name: string
   phone_number: string
   business_category: string
+}
+
+export interface ProfileUpdateData {
+  full_name?: string
+  avatar_url?: string
+  company_name?: string
+  phone_number?: string
+  business_category?: string
+  address?: string
+  website?: string
+  timezone?: string
+  currency?: string
 }
 
 export interface AuthResponse {

@@ -1,27 +1,50 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BusinessSettings } from "@/types/admin.types";
-
-// Mock data service - will be replaced with real API
-const getMockBusinessSettings = (): BusinessSettings => ({
-  companyName: "Demo Company Inc.",
-  companyEmail: "contact@democompany.com",
-  companyPhone: "+1 (555) 123-4567",
-  businessCategory: "e-commerce",
-  address: "123 Business Ave, Suite 100, New York, NY 10001",
-  website: "https://democompany.com",
-  timezone: "America/New_York",
-  currency: "USD",
-});
+import { useAuthStore } from "@/store/auth";
 
 const BusinessSettingsForm: React.FC = () => {
-  const [settings, setSettings] = useState<BusinessSettings>(
-    getMockBusinessSettings()
-  );
+  const { profile, updateProfile, refreshProfile, loading, initialized } =
+    useAuthStore();
+  const [settings, setSettings] = useState<BusinessSettings>({
+    companyName: "",
+    companyEmail: "",
+    companyPhone: "",
+    businessCategory: "e-commerce",
+    address: "",
+    website: "",
+    timezone: "America/New_York",
+    currency: "USD",
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+
+  // Load settings from profile - Bu effect her profile değişiminde çalışacak
+  useEffect(() => {
+    console.log("🔄 Profile changed in BusinessSettingsForm:", profile);
+    console.log("🔍 Profile type:", typeof profile);
+    console.log(
+      "🔍 Profile keys:",
+      profile ? Object.keys(profile) : "No profile"
+    );
+
+    if (profile) {
+      setSettings({
+        companyName: profile.company?.company_name || "",
+        companyEmail: profile.email,
+        companyPhone: profile.company?.phone_number || "",
+        businessCategory: profile.company?.business_category || "e-commerce",
+        address: profile.company?.address || "",
+        website: profile.company?.website || "",
+        timezone: profile.company?.timezone || "America/New_York",
+        currency: profile.company?.currency || "USD",
+      });
+
+      setIsEditing(false);
+    }
+  }, [profile]); // profile dependency'si önemli
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -38,52 +61,129 @@ const BusinessSettingsForm: React.FC = () => {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      // Mock API call - simulate delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Update profile via API
+      await updateProfile({
+        full_name: profile?.full_name, // Keep existing full_name
+        company_name: settings.companyName,
+        phone_number: settings.companyPhone,
+        business_category: settings.businessCategory,
+        address: settings.address,
+        website: settings.website,
+        timezone: settings.timezone,
+        currency: settings.currency,
+      });
 
-      // In real implementation, this would be an API call
-      console.log("Saving business settings:", settings);
+      // Refresh profile to get latest data
+      await refreshProfile();
 
       setIsEditing(false);
       setSuccessMessage("Business settings updated successfully!");
 
       // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(""), 5000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving settings:", error);
+      const errorMessage =
+        error?.message || "Failed to update settings. Please try again.";
+      setSuccessMessage(`Error: ${errorMessage}`);
+      setTimeout(() => setSuccessMessage(""), 5000);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCancel = () => {
-    // Reset to original mock data
-    setSettings(getMockBusinessSettings());
+    // Reset to current profile data
+    if (profile) {
+      setSettings({
+        companyName: profile.company?.company_name || "",
+        companyEmail: profile.email,
+        companyPhone: profile.company?.phone_number || "",
+        businessCategory: profile.company?.business_category || "e-commerce",
+        address: profile.company?.address || "",
+        website: profile.company?.website || "",
+        timezone: profile.company?.timezone || "America/New_York",
+        currency: profile.company?.currency || "USD",
+      });
+    }
     setIsEditing(false);
     setSuccessMessage("");
   };
 
+  // Show loading state while auth is initializing or profile is loading
+  if (!initialized || (loading && !profile)) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600">Loading business settings...</span>
+      </div>
+    );
+  }
+
+  // Show message if no profile is found after initialization
+  if (initialized && !profile && !loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-center">
+          <p className="text-gray-600">No profile data found.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 text-blue-600 hover:text-blue-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Success Message */}
+      {/* Success/Error Message */}
       {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div
+          className={`${
+            successMessage.startsWith("Error:")
+              ? "bg-red-50 border-red-200"
+              : "bg-green-50 border-green-200"
+          } border rounded-lg p-4`}
+        >
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-green-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              {successMessage.startsWith("Error:") ? (
+                <svg
+                  className="h-5 w-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="h-5 w-5 text-green-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              )}
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-green-800">
+              <p
+                className={`text-sm font-medium ${
+                  successMessage.startsWith("Error:")
+                    ? "text-red-800"
+                    : "text-green-800"
+                }`}
+              >
                 {successMessage}
               </p>
             </div>

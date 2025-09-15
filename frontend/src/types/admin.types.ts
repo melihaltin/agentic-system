@@ -8,7 +8,7 @@ export interface BusinessCategory {
 }
 
 // Agent communication types
-export type AgentCommunicationType = 'voice' | 'chat' | 'hybrid';
+export type AgentCommunicationType = "voice" | "chat" | "hybrid";
 
 // Specific agent within a business category
 export interface AgentType {
@@ -38,14 +38,14 @@ export interface BaseAgentSettings {
 export interface VoiceAgentSettings extends BaseAgentSettings {
   voice: VoiceOption;
   personality: string;
-  responseSpeed: 'fast' | 'normal' | 'slow';
+  responseSpeed: "fast" | "normal" | "slow";
   maxSessionDuration: number; // in minutes
 }
 
 // Chat-specific settings (only for chat agents)
 export interface ChatAgentSettings extends BaseAgentSettings {
   // Chat agents might have specific settings in the future
-  responseStyle?: 'concise' | 'detailed' | 'conversational';
+  responseStyle?: "concise" | "detailed" | "conversational";
 }
 
 // Union type for all agent settings
@@ -55,7 +55,7 @@ export interface VoiceOption {
   id: string;
   name: string;
   language: string;
-  gender: 'male' | 'female';
+  gender: "male" | "female";
   preview: string; // URL to preview audio
 }
 
@@ -64,7 +64,7 @@ export interface Integration {
   id: string;
   name: string;
   description: string;
-  type: 'platform' | 'api' | 'webhook';
+  type: "platform" | "api" | "webhook";
   required: boolean;
   fields: IntegrationField[];
 }
@@ -72,7 +72,7 @@ export interface Integration {
 export interface IntegrationField {
   id: string;
   name: string;
-  type: 'text' | 'password' | 'select' | 'url';
+  type: "text" | "password" | "select" | "url";
   required: boolean;
   placeholder?: string;
   options?: string[]; // For select type
@@ -87,7 +87,6 @@ export interface BusinessSettings {
   address?: string;
   website?: string;
   timezone: string;
-  currency: string;
 }
 
 export interface AdminStats {
@@ -99,4 +98,8 @@ export interface AdminStats {
   monthlyCalls: number;
 }
 
-export type AdminSection = 'business-settings' | 'my-agents' | 'analytics' | 'settings';
+export type AdminSection =
+  | "business-settings"
+  | "my-agents"
+  | "analytics"
+  | "settings";

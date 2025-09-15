@@ -15,7 +15,6 @@ const BusinessSettingsForm: React.FC = () => {
     address: "",
     website: "",
     timezone: "America/New_York",
-    currency: "USD",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +30,6 @@ const BusinessSettingsForm: React.FC = () => {
         address: profile.company?.address || "",
         website: profile.company?.website || "",
         timezone: profile.company?.timezone || "America/New_York",
-        currency: profile.company?.currency || "USD",
       });
       setIsEditing(false);
     }
@@ -56,7 +54,6 @@ const BusinessSettingsForm: React.FC = () => {
         address: settings.address,
         website: settings.website,
         timezone: settings.timezone,
-        currency: settings.currency,
       });
       await refreshProfile();
       setIsEditing(false);
@@ -82,7 +79,6 @@ const BusinessSettingsForm: React.FC = () => {
         address: profile.company?.address || "",
         website: profile.company?.website || "",
         timezone: profile.company?.timezone || "America/New_York",
-        currency: profile.company?.currency || "USD",
       });
     }
     setIsEditing(false);
@@ -329,7 +325,7 @@ const BusinessSettingsForm: React.FC = () => {
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-bold text-gray-900">Business Settings</h3>
           <p className="text-sm text-gray-500 mt-1">
-            Regional and currency settings
+            Regional settings and preferences
           </p>
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">

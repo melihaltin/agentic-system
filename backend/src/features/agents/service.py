@@ -435,7 +435,9 @@ class AgentManagementService:
             raise
 
     @staticmethod
-    async def deactivate_agent_for_company(company_id: str, agent_id: str) -> Dict[str, Any]:
+    async def deactivate_agent_for_company(
+        company_id: str, agent_id: str
+    ) -> Dict[str, Any]:
         """Deactivate an agent for a company"""
         try:
             logger.info(f"Deactivating agent {agent_id} for company {company_id}")
@@ -446,7 +448,7 @@ class AgentManagementService:
                 .eq("id", agent_id)
                 .execute()
             )
-            
+
             logger.info(f"Deactivate query result: {result.data}")
             return result.data[0] if result.data else {}
 
@@ -462,7 +464,9 @@ class AgentManagementService:
     ) -> Dict[str, Any]:
         """Update company agent configuration"""
         try:
-            logger.info(f"Updating agent {agent_id} for company {company_id} with updates: {updates}")
+            logger.info(
+                f"Updating agent {agent_id} for company {company_id} with updates: {updates}"
+            )
             # Only allow updates to specific fields
             allowed_fields = [
                 "custom_name",
@@ -477,6 +481,8 @@ class AgentManagementService:
             update_data = {k: v for k, v in updates.items() if k in allowed_fields}
             logger.info(f"Filtered update data: {update_data}")
 
+            print(f"Filtered update data: {update_data}")
+
             if update_data:
                 result = (
                     supabase.table("company_agents")
@@ -486,12 +492,14 @@ class AgentManagementService:
                     .execute()
                 )
                 logger.info(f"Update query result: {result.data}")
+                print(f"Update query result: {result.data}")
                 return result.data[0] if result.data else {}
 
             return {}
 
         except Exception as e:
             logger.error(f"Error updating company agent {agent_id}: {e}")
+            print(f"Error updating company agent {agent_id}: {e}")
             raise
 
     @staticmethod

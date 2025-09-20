@@ -151,6 +151,7 @@ async def toggle_agent_status(
             agent = await agent_service.update_company_agent(
                 company_id, agent_id, {"is_active": True}
             )
+            print(f"Activated agent result: {agent}")
             logger.info(f"Activated agent result: {agent}")
         else:
             # Deactivate

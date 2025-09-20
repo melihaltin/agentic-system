@@ -145,12 +145,17 @@ class AuthRepository:
                 "email": profile_data.get("email", ""),
                 "full_name": profile_data.get("full_name", ""),
                 "company": {
+                    "id": profile_data.get("id"),  # Include company ID
+                    "user_id": profile_data.get("user_id"),
                     "company_name": profile_data.get("company_name", ""),
                     "phone_number": profile_data.get("phone_number", ""),
                     "business_category": profile_data.get("business_category", ""),
                     "address": profile_data.get("address", ""),
                     "website": profile_data.get("website", ""),
                     "timezone": profile_data.get("timezone", "America/New_York"),
+                    "currency": profile_data.get("currency", "USD"),
+                    "created_at": profile_data.get("created_at"),
+                    "updated_at": profile_data.get("updated_at"),
                 },
             }
 

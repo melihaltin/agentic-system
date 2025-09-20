@@ -2,10 +2,12 @@ export const ModalFooter = ({
   onClose,
   onSave,
   isSaving,
+  isActivating = false,
 }: {
   onClose: () => void;
   onSave: () => void;
   isSaving: boolean;
+  isActivating?: boolean; // Yeni prop - activation durumu
 }) => (
   <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
     <button
@@ -41,7 +43,15 @@ export const ModalFooter = ({
           ></path>
         </svg>
       )}
-      <span>{isSaving ? "Saving..." : "Save Changes"}</span>
+      <span>
+        {isSaving
+          ? isActivating
+            ? "Activating..."
+            : "Saving..."
+          : isActivating
+          ? "Activate Agent"
+          : "Save Changes"}
+      </span>
     </button>
   </div>
 );

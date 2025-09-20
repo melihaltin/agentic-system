@@ -23,6 +23,8 @@ export interface AgentType {
   lastUpdated: string;
   requiredIntegrations: Integration[]; // Required platform integrations
   settings: AgentSettings;
+  agentTemplateId?: string; // Template ID if this is a template or company agent
+  isCompanyAgent?: boolean; // True if this is already a company agent, false if template
 }
 
 // Base settings for all agents

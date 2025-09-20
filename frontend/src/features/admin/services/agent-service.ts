@@ -172,6 +172,8 @@ export class AgentService {
           isActive: false, // Templates are not active by default
           lastUpdated: new Date().toISOString().split("T")[0],
           requiredIntegrations: template.required_integrations || [],
+          agentTemplateId: template.id,
+          isCompanyAgent: false, // This is a template, not a company agent
           settings: {
             customName: template.name,
             language: "Turkish",

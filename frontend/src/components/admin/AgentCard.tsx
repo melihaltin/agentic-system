@@ -18,8 +18,13 @@ import {
 
 interface AgentCardProps {
   agent: AgentType;
-  onToggle: (agentId: string, isActive: boolean) => void;
+  onToggle: (
+    agentId: string,
+    isActive: boolean,
+    agentTemplateId?: string
+  ) => void;
   onConfigure: (agent: AgentType) => void;
+  onActivate?: (agent: AgentType) => void; // Yeni prop - ilk kez activate etmek için
   isLoading?: boolean;
 }
 
@@ -27,10 +32,17 @@ const AgentCard: React.FC<AgentCardProps> = ({
   agent,
   onToggle,
   onConfigure,
+  onActivate,
   isLoading = false,
 }) => {
+  console.log("Rendering AgentCard for agent:", agent);
   const handleToggle = () => {
-    onToggle(agent.id, !agent.isActive);
+    // If this is a template (not a company agent), pass the template ID
+    const templateId =
+      agent.isCompanyAgent === false
+        ? agent.agentTemplateId || agent.id
+        : undefined;
+    onToggle(agent.id, !agent.isActive, templateId);
   };
 
   return (
@@ -136,11 +148,28 @@ const AgentCard: React.FC<AgentCardProps> = ({
       {/* Actions */}
       <div className="p-6 pt-4 border-t border-gray-100">
         <div className="flex items-center justify-between">
-          <ToggleSwitch
-            isActive={agent.isActive}
-            onToggle={handleToggle}
-            isLoading={isLoading}
-          />
+          {/* Sol taraf - Toggle veya Activate butonu */}
+          {agent.isActive || agent.isCompanyAgent === true ? (
+            <ToggleSwitch
+              isActive={agent.isActive}
+              onToggle={handleToggle}
+              isLoading={isLoading}
+            />
+          ) : (
+            // Eğer agent aktif değil ve template ise Activate butonu göster
+            onActivate && (
+              <button
+                onClick={() => onActivate(agent)}
+                disabled={isLoading}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FiCheck className="w-4 h-4 mr-2" />
+                Activate
+              </button>
+            )
+          )}
+
+          {/* Sağ taraf - Configure butonu */}
           <button
             onClick={() => onConfigure(agent)}
             className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors group-hover:bg-blue-100"

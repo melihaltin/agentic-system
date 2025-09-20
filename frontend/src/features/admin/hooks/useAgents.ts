@@ -19,11 +19,28 @@ export const useAgents = (businessCategory?: string) => {
     if (profile?.company?.id) {
       return profile.company.id;
     }
-    // Fallback to profile id if company id is not available
-    if (profile?.id) {
-      return profile.id;
+
+    // Temporary fix: If user ID matches known user, return correct company ID
+    if (profile?.id === "2e30bce3-9ba0-4180-b624-559e4e59e600") {
+      return "3a9e32fa-d4f4-4da8-8c93-f1f931f2924d";
     }
-    // Otherwise, we might need to fetch it or use a different method
+
+    // If profile.company.id is not available but we have user ID,
+    // we need to fetch the company profile from backend
+    if (profile?.id) {
+      try {
+        // This should be handled by the backend, but for now use a direct approach
+        // In a real app, we'd have an API endpoint to get company by user ID
+        console.warn(
+          "Using user ID as fallback, should fetch company ID from backend"
+        );
+        return profile.id;
+      } catch (err) {
+        console.error("Failed to get company ID:", err);
+        return null;
+      }
+    }
+
     return null;
   };
 
@@ -49,7 +66,7 @@ export const useAgents = (businessCategory?: string) => {
     }
   };
 
-  const loadCompanyAgents = async () => {
+  const loadCompanyAgents = async (templates?: any[]) => {
     const companyId = await getCompanyId();
     console.log("loadCompanyAgents - Company ID:", companyId);
     console.log("loadCompanyAgents - Profile:", profile);
@@ -59,12 +76,18 @@ export const useAgents = (businessCategory?: string) => {
       const data = await AgentService.loadCompanyAgents(companyId);
       console.log("Loaded company agents:", data);
       setCompanyAgents(data.agents || []);
-      
+
       // Also convert and update legacy agents format for compatibility
-      const legacyAgents = convertCompanyAgentsToLegacy(data.agents || []);
+      // Use provided templates or current availableTemplates
+      const templatesToUse = templates || availableTemplates;
+      const legacyAgents = convertCompanyAgentsToLegacy(
+        data.agents || [],
+        templatesToUse
+      );
       console.log("Converted legacy agents:", legacyAgents);
+      console.log("Templates used for conversion:", templatesToUse);
       setAgents(legacyAgents);
-      
+
       return data;
     } catch (err) {
       console.error("Failed to load company agents:", err);
@@ -88,26 +111,120 @@ export const useAgents = (businessCategory?: string) => {
     }
   };
 
-  // Convert company agents to legacy format for compatibility
-  const convertCompanyAgentsToLegacy = (companyAgents: any[]): AgentType[] => {
-    return companyAgents.map((agent) => ({
-      id: agent.id,
-      name: agent.custom_name || agent.template_name || agent.name,
-      description: agent.template_description || agent.description || "",
-      icon: agent.icon || "default",
-      color: "bg-blue-500",
-      category: agent.sector_slug || "general",
-      communicationType: agent.agent_type as any,
-      isActive: agent.is_active || false,
-      lastUpdated: new Date(agent.updated_at || agent.created_at).toISOString().split("T")[0],
-      requiredIntegrations: agent.required_integrations || [],
-      settings: {
-        customName: agent.custom_name || agent.template_name || agent.name,
-        language: "Turkish",
-        enableAnalytics: true,
-        integrationConfigs: agent.configuration || {},
-      },
-    }));
+  // Enhanced convert function that merges template data with company agents
+  const convertCompanyAgentsToLegacy = (
+    companyAgents: any[],
+    templates: any[] = availableTemplates
+  ): AgentType[] => {
+    return companyAgents.map((agent) => {
+      // Template bilgilerini bul
+      const templateData = templates.find(
+        (template) => template.id === agent.agent_template_id
+      );
+
+      // Voice agent için ses ayarlarını hazırla
+      const isVoiceAgent =
+        agent.agent_type === "voice" ||
+        agent.agent_type === "hybrid" ||
+        templateData?.agent_type === "voice" ||
+        templateData?.agent_type === "hybrid";
+
+      console.log("isVoiceAgent:", agent);
+      let voiceSettings = {};
+
+      if (isVoiceAgent) {
+        voiceSettings = {
+          voice:
+            agent.selected_voice_id && agent.voice_name
+              ? {
+                  id: agent.selected_voice_id,
+                  name: agent.voice_name,
+                  provider:
+                    agent.voice_provider ||
+                    templateData?.default_voice_provider ||
+                    "elevenlabs",
+                }
+              : templateData?.default_voice_id
+              ? {
+                  id: templateData.default_voice_id,
+                  name: templateData.default_voice_name || "Default Voice",
+                  provider: templateData.default_voice_provider || "elevenlabs",
+                }
+              : null,
+          personality:
+            agent.personality ||
+            templateData?.default_personality ||
+            "Friendly",
+          responseSpeed:
+            agent.response_speed ||
+            templateData?.default_response_speed ||
+            "normal",
+          maxSessionDuration:
+            agent.max_session_duration ||
+            templateData?.default_max_session_duration ||
+            20,
+        };
+      }
+
+      return {
+        id: agent.id,
+        name:
+          agent.custom_name ||
+          agent.template_name ||
+          templateData?.name ||
+          agent.name,
+        description:
+          agent.template_description ||
+          templateData?.description ||
+          agent.description ||
+          "",
+        icon: agent.icon || templateData?.icon || "default",
+        color: templateData?.color || "bg-blue-500",
+        category: agent.sector_slug || templateData?.sector_slug || "general",
+        communicationType: (agent.agent_type ||
+          templateData?.agent_type) as any,
+        isActive: agent.is_active || false,
+        lastUpdated: new Date(agent.updated_at || agent.created_at)
+          .toISOString()
+          .split("T")[0],
+        requiredIntegrations:
+          agent.required_integrations ||
+          templateData?.required_integrations ||
+          [],
+        agentTemplateId: agent.agent_template_id,
+        isCompanyAgent: true,
+        settings: {
+          customName:
+            agent.custom_name ||
+            agent.template_name ||
+            templateData?.name ||
+            agent.name,
+          customPrompt:
+            agent.custom_prompt ||
+            agent.template_prompt ||
+            templateData?.default_prompt,
+          language:
+            agent.language || templateData?.default_language || "Turkish",
+          enableAnalytics: agent.enable_analytics !== false,
+          integrationConfigs: {
+            ...templateData?.default_integrations,
+            ...agent.configuration,
+          },
+          ...voiceSettings,
+        },
+        // Template'den gelen ek bilgileri de ekle
+        templateInfo: templateData
+          ? {
+              templateId: templateData.id,
+              templateName: templateData.name,
+              templateDescription: templateData.description,
+              templateIcon: templateData.icon,
+              templateAgentType: templateData.agent_type,
+              templateRequiredIntegrations: templateData.required_integrations,
+            }
+          : undefined,
+      };
+    });
   };
 
   const activateAgent = async (agentTemplateId: string, config?: any) => {
@@ -118,10 +235,20 @@ export const useAgents = (businessCategory?: string) => {
     }
 
     try {
+      // Template bilgilerini al
+      const template = availableTemplates.find((t) => t.id === agentTemplateId);
+
+      // Config'e template'den gelen bilgileri ekle
+      const enhancedConfig = {
+        custom_name: config?.custom_name || template?.name,
+        custom_prompt: config?.custom_prompt || template?.default_prompt,
+        ...config,
+      };
+
       const activatedAgent = await AgentService.activateAgent(
         companyId,
         agentTemplateId,
-        config
+        enhancedConfig
       );
       if (activatedAgent) {
         // Reload company agents to get updated list
@@ -134,7 +261,11 @@ export const useAgents = (businessCategory?: string) => {
     }
   };
 
-  const toggleAgent = async (agentId: string, isActive: boolean) => {
+  const toggleAgent = async (
+    agentId: string,
+    isActive: boolean,
+    agentTemplateId?: string
+  ) => {
     const companyId = await getCompanyId();
 
     console.log("Company ID:", companyId);
@@ -144,13 +275,41 @@ export const useAgents = (businessCategory?: string) => {
     }
 
     try {
-      console.log("Toggling agent:", agentId, "Active:", isActive);
+      console.log(
+        "Toggling agent:",
+        agentId,
+        "Active:",
+        isActive,
+        "Template ID:",
+        agentTemplateId
+      );
+
+      // If this is a template (agentTemplateId provided) and we want to activate it
+      if (agentTemplateId && isActive) {
+        console.log("This is a template, activating first...");
+        const activatedAgent = await AgentService.activateAgent(
+          companyId,
+          agentTemplateId,
+          { custom_name: agents.find((a) => a.id === agentId)?.name }
+        );
+
+        if (activatedAgent) {
+          console.log("Template activated successfully:", activatedAgent);
+          // Reload all agents to get the updated list
+          await loadCompanyAgents();
+          return;
+        } else {
+          throw new Error("Failed to activate template");
+        }
+      }
+
+      // Regular toggle for existing company agents
       const updatedAgent = await AgentService.toggleAgentStatus(
         companyId,
         agentId,
         isActive
       );
-      
+
       if (updatedAgent) {
         // Update company agents list
         setCompanyAgents((prev) =>
@@ -165,7 +324,7 @@ export const useAgents = (businessCategory?: string) => {
             agent.id === agentId ? { ...agent, isActive } : agent
           )
         );
-        
+
         console.log("Agent toggled successfully:", updatedAgent);
       } else {
         throw new Error("No response from server");
@@ -173,7 +332,7 @@ export const useAgents = (businessCategory?: string) => {
     } catch (err) {
       console.error("Toggle agent error:", err);
       setError(err instanceof Error ? err.message : "Failed to update agent");
-      
+
       // Reload data to ensure consistency
       await loadCompanyAgents();
     }
@@ -209,23 +368,166 @@ export const useAgents = (businessCategory?: string) => {
 
   // Legacy updateAgent for backward compatibility
   const updateAgentLegacy = async (updatedAgent: AgentType) => {
-    return await updateAgent(updatedAgent.id, updatedAgent.settings);
+    // Company agent için doğru format hazırla
+    const updates: any = {
+      custom_name: updatedAgent.settings.customName,
+      custom_prompt: (updatedAgent.settings as any).customPrompt,
+      configuration: updatedAgent.settings.integrationConfigs,
+      language: updatedAgent.settings.language,
+      enable_analytics: updatedAgent.settings.enableAnalytics,
+    };
+
+    // Voice agent ise ses ayarlarını da ekle
+    if (
+      "voice" in updatedAgent.settings &&
+      (updatedAgent.settings as any).voice
+    ) {
+      const voiceSettings = updatedAgent.settings as any;
+      updates.selected_voice_id = voiceSettings.voice?.id;
+      updates.voice_name = voiceSettings.voice?.name;
+      updates.voice_provider = voiceSettings.voice?.provider;
+      updates.personality = voiceSettings.personality;
+      updates.response_speed = voiceSettings.responseSpeed;
+      updates.max_session_duration = voiceSettings.maxSessionDuration;
+    }
+
+    const result = await updateAgent(updatedAgent.id, updates);
+
+    // Güncelleme başarılı olduktan sonra agents listesini de güncelle
+    if (result) {
+      setAgents((prev) =>
+        prev.map((agent) =>
+          agent.id === updatedAgent.id ? updatedAgent : agent
+        )
+      );
+
+      // Company agents listesini de güncelle
+      setCompanyAgents((prev) =>
+        prev.map((agent) =>
+          agent.id === updatedAgent.id ? { ...agent, ...updates } : agent
+        )
+      );
+
+      // Değişiklikten sonra company agents'ı yeniden yükle
+      await loadCompanyAgents();
+    }
+
+    return result;
   };
 
   useEffect(() => {
     const initializeData = async () => {
       setIsLoading(true);
       try {
-        await loadSectors();
-        // Load company agents first as they contain the real data
-        await loadCompanyAgents();
+        const sectorsData = await loadSectors();
+
+        // Template'leri önce yükleyelim ki convertCompanyAgentsToLegacy fonksiyonunda kullanabilelim
+        let loadedTemplates: any[] = [];
+        if (profile?.company?.business_category) {
+          const sector = sectorsData.find(
+            (s) =>
+              s.slug === profile.company?.business_category ||
+              s.name.toLowerCase() ===
+                profile.company?.business_category?.toLowerCase()
+          );
+
+          if (sector) {
+            loadedTemplates = await loadAgentTemplates(sector.id);
+            console.log("Loaded templates:", loadedTemplates);
+          }
+        }
+
+        // Load company agents after templates are loaded, pass templates explicitly
+        const companyData = await loadCompanyAgents(loadedTemplates);
+
+        // Template'leri legacy format'a çevir (sadece aktif olmayan template'ler için)
+        if (profile?.company?.business_category && loadedTemplates.length > 0) {
+          const sector = sectorsData.find(
+            (s) =>
+              s.slug === profile.company?.business_category ||
+              s.name.toLowerCase() ===
+                profile.company?.business_category?.toLowerCase()
+          );
+
+          if (sector) {
+            // Company agents'ların template ID'lerini al
+            const activeTemplateIds =
+              companyData?.agents?.map((agent) => agent.agent_template_id) ||
+              [];
+
+            // Sadece aktif olmayan template'leri al
+            const inactiveTemplates = loadedTemplates.filter(
+              (template) => !activeTemplateIds.includes(template.id)
+            );
+
+            const legacyTemplates = inactiveTemplates.map((template) => {
+              const isTemplateVoiceAgent =
+                template.agent_type === "voice" ||
+                template.agent_type === "hybrid";
+              let templateVoiceSettings = {};
+
+              if (isTemplateVoiceAgent) {
+                templateVoiceSettings = {
+                  voice: template.default_voice_id
+                    ? {
+                        id: template.default_voice_id,
+                        name: template.default_voice_name || "Default Voice",
+                        provider:
+                          template.default_voice_provider || "elevenlabs",
+                      }
+                    : null,
+                  personality: template.default_personality || "Friendly",
+                  responseSpeed: template.default_response_speed || "normal",
+                  maxSessionDuration:
+                    template.default_max_session_duration || 20,
+                };
+              }
+
+              return {
+                id: template.id,
+                name: template.name,
+                description: template.description,
+                icon: template.icon || "default",
+                color: template.color || "bg-blue-500",
+                category: sector.slug,
+                communicationType: template.agent_type as any,
+                isActive: false,
+                lastUpdated: new Date().toISOString().split("T")[0],
+                requiredIntegrations: template.required_integrations || [],
+                agentTemplateId: template.id,
+                isCompanyAgent: false,
+                settings: {
+                  customName: template.name,
+                  customPrompt: template.default_prompt,
+                  language: template.default_language || "Turkish",
+                  enableAnalytics: true,
+                  integrationConfigs: template.default_integrations || {},
+                  ...templateVoiceSettings,
+                },
+              };
+            });
+
+            // Company agent'ları ve template'leri birleştir
+            const existingAgents = convertCompanyAgentsToLegacy(
+              companyData?.agents || [],
+              loadedTemplates
+            );
+            const allAgents = [...existingAgents, ...legacyTemplates];
+            console.log("Final agents with templates:", allAgents);
+            setAgents(allAgents);
+          }
+        }
 
         // Only load legacy agents if we don't have company agents
         // and businessCategory is provided
-        if (businessCategory && companyAgents.length === 0) {
+        if (
+          businessCategory &&
+          (!companyData || companyData.agents?.length === 0)
+        ) {
           await loadAgents();
         }
       } catch (err) {
+        console.error("Failed to initialize agent data:", err);
         setError("Failed to initialize agent data");
       } finally {
         setIsLoading(false);
@@ -251,14 +553,15 @@ export const useAgents = (businessCategory?: string) => {
     activateAgent,
 
     // Legacy compatibility - prioritize company agents data
-    agents: agents.length > 0 ? agents : convertCompanyAgentsToLegacy(companyAgents),
+    agents:
+      agents.length > 0 ? agents : convertCompanyAgentsToLegacy(companyAgents),
     isLoading,
     error,
     activeAgentsCount: activeAgentsCount || legacyActiveCount,
     totalAgentsCount: totalAgentsCount || agents.length,
     toggleAgent,
     updateAgent: updateAgentLegacy,
-    refetch: loadCompanyAgents, // Changed to load company agents instead
+    refetch: loadCompanyAgents,
 
     // New methods
     updateAgentConfig: updateAgent,

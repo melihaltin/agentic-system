@@ -180,6 +180,7 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
             onClose={handleClose}
             onSave={handleSave}
             isSaving={isSaving}
+            isActivating={!agent.isActive && agent.isCompanyAgent === false}
           />
         </div>
       </div>

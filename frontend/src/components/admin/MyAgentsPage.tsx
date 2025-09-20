@@ -31,6 +31,7 @@ const MyAgentsPage: React.FC = () => {
     totalAgentsCount,
     toggleAgent,
     updateAgent,
+    activateAgent,
   } = useAgents(businessCategory);
 
   const handleConfigureAgent = (agent: AgentType) => {
@@ -38,8 +39,34 @@ const MyAgentsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleActivateAgent = (agent: AgentType) => {
+    // Activate edilecek agent için modal'ı aç
+    setSelectedAgent(agent);
+    setIsModalOpen(true);
+  };
+
   const handleSaveAgentConfig = async (updatedAgent: AgentType) => {
-    await updateAgent(updatedAgent);
+    // Eğer agent daha önce aktif değilse, önce activate et
+    if (!selectedAgent?.isActive && selectedAgent?.isCompanyAgent === false) {
+      const templateId = selectedAgent?.agentTemplateId || selectedAgent?.id;
+
+      // Agent'ı activate et ve konfigürasyon verilerini geç
+      const config = {
+        custom_name: updatedAgent.settings.customName,
+        custom_prompt: updatedAgent.settings.customPrompt,
+        configuration: updatedAgent.settings.integrationConfigs,
+        // Voice agent ise ses ayarlarını da ekle
+        ...((updatedAgent.settings as any).voice && {
+          selected_voice_id: (updatedAgent.settings as any).voice.id,
+        }),
+      };
+
+      await activateAgent(templateId, config);
+    } else {
+      // Zaten aktif agent için sadece güncelle
+      await updateAgent(updatedAgent);
+    }
+
     setIsModalOpen(false);
     setSelectedAgent(null);
   };
@@ -143,6 +170,7 @@ const MyAgentsPage: React.FC = () => {
                 agent={agent}
                 onToggle={toggleAgent}
                 onConfigure={handleConfigureAgent}
+                onActivate={handleActivateAgent}
               />
             ))}
           </div>

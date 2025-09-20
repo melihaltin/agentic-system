@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
+import logging
 from src.features.agents.service import elevenlabs_service, agent_service
 from src.features.agents.models import (
     AgentVoicesListResponse,
@@ -15,6 +16,8 @@ from src.features.agents.models import (
     CompanyAgentResponse,
 )
 from src.features.shared.dependencies import get_current_user
+
+logger = logging.getLogger(__name__)
 
 # Voice routes
 voice_router = APIRouter(prefix="/v1/voices", tags=["voices"])
@@ -141,22 +144,26 @@ async def toggle_agent_status(
 ):
     """Activate or deactivate an agent"""
     try:
+        logger.info(f"Toggle agent - Company ID: {company_id}, Agent ID: {agent_id}, Active: {request.is_active}")
+        
         if request.is_active:
             # Activate
             agent = await agent_service.update_company_agent(
                 company_id, agent_id, {"is_active": True}
             )
+            logger.info(f"Activated agent result: {agent}")
         else:
             # Deactivate
-            success = await agent_service.deactivate_agent_for_company(
+            agent = await agent_service.deactivate_agent_for_company(
                 company_id, agent_id
             )
-            if not success:
+            logger.info(f"Deactivated agent result: {agent}")
+            if not agent:
                 raise HTTPException(status_code=404, detail="Agent not found")
-            agent = {"id": agent_id, "is_active": False}
 
         return {"success": True, "agent": agent}
     except Exception as e:
+        logger.error(f"Error toggling agent: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to toggle agent: {str(e)}")
 
 

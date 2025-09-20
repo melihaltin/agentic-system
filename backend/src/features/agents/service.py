@@ -435,9 +435,10 @@ class AgentManagementService:
             raise
 
     @staticmethod
-    async def deactivate_agent_for_company(company_id: str, agent_id: str) -> bool:
+    async def deactivate_agent_for_company(company_id: str, agent_id: str) -> Dict[str, Any]:
         """Deactivate an agent for a company"""
         try:
+            logger.info(f"Deactivating agent {agent_id} for company {company_id}")
             result = (
                 supabase.table("company_agents")
                 .update({"is_active": False})
@@ -445,8 +446,9 @@ class AgentManagementService:
                 .eq("id", agent_id)
                 .execute()
             )
-
-            return len(result.data) > 0
+            
+            logger.info(f"Deactivate query result: {result.data}")
+            return result.data[0] if result.data else {}
 
         except Exception as e:
             logger.error(
@@ -460,6 +462,7 @@ class AgentManagementService:
     ) -> Dict[str, Any]:
         """Update company agent configuration"""
         try:
+            logger.info(f"Updating agent {agent_id} for company {company_id} with updates: {updates}")
             # Only allow updates to specific fields
             allowed_fields = [
                 "custom_name",
@@ -472,6 +475,7 @@ class AgentManagementService:
             ]
 
             update_data = {k: v for k, v in updates.items() if k in allowed_fields}
+            logger.info(f"Filtered update data: {update_data}")
 
             if update_data:
                 result = (
@@ -481,6 +485,7 @@ class AgentManagementService:
                     .eq("id", agent_id)
                     .execute()
                 )
+                logger.info(f"Update query result: {result.data}")
                 return result.data[0] if result.data else {}
 
             return {}

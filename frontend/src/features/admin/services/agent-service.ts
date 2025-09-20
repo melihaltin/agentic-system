@@ -81,11 +81,17 @@ export class AgentService {
     isActive: boolean
   ): Promise<any> {
     try {
+      console.log("AgentService.toggleAgentStatus called with:", {
+        companyId,
+        agentId,
+        isActive,
+      });
       const result = await agentsApi.toggleAgentStatus(
         companyId,
         agentId,
         isActive
       );
+      console.log("API response:", result);
       return result.success ? result.agent : null;
     } catch (error) {
       console.error("Error toggling agent status:", error);

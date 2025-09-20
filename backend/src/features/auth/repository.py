@@ -67,7 +67,7 @@ class AuthRepository:
 
             try:
                 company_response = (
-                    self.admin_client.table("company_profiles")
+                    self.admin_client.table("company_profile")
                     .insert(company_data)
                     .execute()
                 )
@@ -116,7 +116,7 @@ class AuthRepository:
         try:
             # Get company profile (this is our main profile table)
             company_response = (
-                self.client.table("company_profiles")
+                self.client.table("company_profile")
                 .select("*")
                 .eq("user_id", user_id)
                 .single()
@@ -164,7 +164,7 @@ class AuthRepository:
         try:
             update_data = request.dict(exclude_unset=True)
 
-            # All profile data goes to company_profiles table
+            # All profile data goes to company_profile table
             # Only include fields that exist in the current schema
             company_fields = {
                 k: v
@@ -194,7 +194,7 @@ class AuthRepository:
             if company_fields:
                 company_fields["updated_at"] = "NOW()"
                 (
-                    self.client.table("company_profiles")
+                    self.client.table("company_profile")
                     .update(company_fields)
                     .eq("user_id", user_id)
                     .execute()

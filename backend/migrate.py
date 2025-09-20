@@ -13,7 +13,7 @@ service_key = os.environ.get("SUPABASE_SERVICE_KEY")
 
 supabase: Client = create_client(url, service_key)
 
-# Add missing columns to company_profiles table
+# Add missing columns to company_profile table
 sql = """
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

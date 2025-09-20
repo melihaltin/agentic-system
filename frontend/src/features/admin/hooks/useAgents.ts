@@ -16,6 +16,10 @@ export const useAgents = (businessCategory?: string) => {
   // Get company ID from profile
   const getCompanyId = async () => {
     // If we have profile with company info, use it
+    if (profile?.company?.id) {
+      return profile.company.id;
+    }
+    // Fallback to profile id if company id is not available
     if (profile?.id) {
       return profile.id;
     }
@@ -47,11 +51,20 @@ export const useAgents = (businessCategory?: string) => {
 
   const loadCompanyAgents = async () => {
     const companyId = await getCompanyId();
+    console.log("loadCompanyAgents - Company ID:", companyId);
+    console.log("loadCompanyAgents - Profile:", profile);
     if (!companyId) return;
 
     try {
       const data = await AgentService.loadCompanyAgents(companyId);
+      console.log("Loaded company agents:", data);
       setCompanyAgents(data.agents || []);
+      
+      // Also convert and update legacy agents format for compatibility
+      const legacyAgents = convertCompanyAgentsToLegacy(data.agents || []);
+      console.log("Converted legacy agents:", legacyAgents);
+      setAgents(legacyAgents);
+      
       return data;
     } catch (err) {
       console.error("Failed to load company agents:", err);
@@ -73,6 +86,28 @@ export const useAgents = (businessCategory?: string) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Convert company agents to legacy format for compatibility
+  const convertCompanyAgentsToLegacy = (companyAgents: any[]): AgentType[] => {
+    return companyAgents.map((agent) => ({
+      id: agent.id,
+      name: agent.custom_name || agent.template_name || agent.name,
+      description: agent.template_description || agent.description || "",
+      icon: agent.icon || "default",
+      color: "bg-blue-500",
+      category: agent.sector_slug || "general",
+      communicationType: agent.agent_type as any,
+      isActive: agent.is_active || false,
+      lastUpdated: new Date(agent.updated_at || agent.created_at).toISOString().split("T")[0],
+      requiredIntegrations: agent.required_integrations || [],
+      settings: {
+        customName: agent.custom_name || agent.template_name || agent.name,
+        language: "Turkish",
+        enableAnalytics: true,
+        integrationConfigs: agent.configuration || {},
+      },
+    }));
   };
 
   const activateAgent = async (agentTemplateId: string, config?: any) => {
@@ -115,6 +150,7 @@ export const useAgents = (businessCategory?: string) => {
         agentId,
         isActive
       );
+      
       if (updatedAgent) {
         // Update company agents list
         setCompanyAgents((prev) =>
@@ -123,15 +159,23 @@ export const useAgents = (businessCategory?: string) => {
           )
         );
 
-        // Also update legacy agents list if it exists
+        // Also update legacy agents list
         setAgents((prev) =>
           prev.map((agent) =>
             agent.id === agentId ? { ...agent, isActive } : agent
           )
         );
+        
+        console.log("Agent toggled successfully:", updatedAgent);
+      } else {
+        throw new Error("No response from server");
       }
     } catch (err) {
+      console.error("Toggle agent error:", err);
       setError(err instanceof Error ? err.message : "Failed to update agent");
+      
+      // Reload data to ensure consistency
+      await loadCompanyAgents();
     }
   };
 
@@ -173,9 +217,12 @@ export const useAgents = (businessCategory?: string) => {
       setIsLoading(true);
       try {
         await loadSectors();
+        // Load company agents first as they contain the real data
         await loadCompanyAgents();
 
-        if (businessCategory) {
+        // Only load legacy agents if we don't have company agents
+        // and businessCategory is provided
+        if (businessCategory && companyAgents.length === 0) {
           await loadAgents();
         }
       } catch (err) {
@@ -186,7 +233,7 @@ export const useAgents = (businessCategory?: string) => {
     };
 
     initializeData();
-  }, [businessCategory, profile?.company?.id]);
+  }, [businessCategory, profile?.company?.id, profile?.id]);
 
   // Computed values
   const activeAgentsCount = companyAgents.filter(
@@ -203,15 +250,15 @@ export const useAgents = (businessCategory?: string) => {
     loadAgentTemplates,
     activateAgent,
 
-    // Legacy compatibility
-    agents,
+    // Legacy compatibility - prioritize company agents data
+    agents: agents.length > 0 ? agents : convertCompanyAgentsToLegacy(companyAgents),
     isLoading,
     error,
-    activeAgentsCount: legacyActiveCount || activeAgentsCount,
-    totalAgentsCount: agents.length || totalAgentsCount,
+    activeAgentsCount: activeAgentsCount || legacyActiveCount,
+    totalAgentsCount: totalAgentsCount || agents.length,
     toggleAgent,
     updateAgent: updateAgentLegacy,
-    refetch: loadAgents,
+    refetch: loadCompanyAgents, // Changed to load company agents instead
 
     // New methods
     updateAgentConfig: updateAgent,

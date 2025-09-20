@@ -43,6 +43,10 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setFormData(agent);
+      // Reset form state when opening modal
+      setActiveTab("general");
+      setSelectedPlatform("");
+      setPlatformConfig({});
     }
   }, [isOpen, agent]);
 
@@ -76,6 +80,15 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
           } as VoiceAgentSettings,
         }));
       }
+    } else if (name === "integrationConfigs") {
+      // Handle multiple integration configs
+      setFormData((prev) => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          integrationConfigs: value as unknown as Record<string, any>,
+        },
+      }));
     } else if (name === "platform") {
       setSelectedPlatform(value);
       setPlatformConfig({});
@@ -99,18 +112,9 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Include platform configuration in the agent settings
-      const updatedAgent = {
-        ...formData,
-        settings: {
-          ...formData.settings,
-          integrationConfigs: {
-            ...formData.settings.integrationConfigs,
-            [selectedPlatform]: platformConfig,
-          },
-        },
-      };
-      await onSave(updatedAgent);
+      // The integration configs are now managed directly by the IntegrationSettings component
+      // and stored in formData.settings.integrationConfigs, so we just save the formData
+      await onSave(formData);
     } finally {
       setIsSaving(false);
     }

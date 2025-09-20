@@ -134,23 +134,22 @@ export const useAgents = (businessCategory?: string) => {
 
       if (isVoiceAgent) {
         voiceSettings = {
-          voice:
-            agent.selected_voice_id && agent.voice_name
-              ? {
-                  id: agent.selected_voice_id,
-                  name: agent.voice_name,
-                  provider:
-                    agent.voice_provider ||
-                    templateData?.default_voice_provider ||
-                    "elevenlabs",
-                }
-              : templateData?.default_voice_id
-              ? {
-                  id: templateData.default_voice_id,
-                  name: templateData.default_voice_name || "Default Voice",
-                  provider: templateData.default_voice_provider || "elevenlabs",
-                }
-              : null,
+          voice: agent.selected_voice_id
+            ? {
+                id: agent.selected_voice_id,
+                name: agent.voice_name || "Selected Voice",
+                provider:
+                  agent.voice_provider ||
+                  templateData?.default_voice_provider ||
+                  "elevenlabs",
+              }
+            : templateData?.default_voice_id
+            ? {
+                id: templateData.default_voice_id,
+                name: templateData.default_voice_name || "Default Voice",
+                provider: templateData.default_voice_provider || "elevenlabs",
+              }
+            : null,
           personality:
             agent.personality ||
             templateData?.default_personality ||

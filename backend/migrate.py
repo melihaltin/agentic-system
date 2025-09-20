@@ -592,24 +592,13 @@ INSERT INTO agent_voices (name, provider, voice_id, language, gender, age_group)
 ('Zeynep - Profesyonel', 'google', 'tr-TR-Standard-C', 'tr-TR', 'female', 'middle'),
 ('Can - Samimi', 'azure', 'tr-TR-AhmetNeural', 'tr-TR', 'male', 'young');
 
--- Örnek Entegrasyon Sağlayıcıları
+-- Örnek Entegrasyon Sağlayıcıları (Sadece Shopify)
 INSERT INTO integration_providers (name, slug, category, description, required_credentials, applicable_sectors) VALUES
 ('Shopify', 'shopify', 'e-commerce', 'Shopify mağaza entegrasyonu', 
  '{"api_key": {"required": true, "label": "Admin API Access Token", "type": "password", "placeholder": "shpat_xxxxx"}, 
    "store_url": {"required": true, "label": "Store URL", "type": "url", "placeholder": "mystore.myshopify.com"},
    "api_version": {"required": false, "label": "API Version", "type": "text", "default": "2024-01"}}'::jsonb,
- ARRAY((SELECT id FROM sectors WHERE slug = 'e-commerce'))),
-
-('WooCommerce', 'woocommerce', 'e-commerce', 'WooCommerce WordPress entegrasyonu',
- '{"consumer_key": {"required": true, "label": "Consumer Key", "type": "password"},
-   "consumer_secret": {"required": true, "label": "Consumer Secret", "type": "password"},
-   "site_url": {"required": true, "label": "Site URL", "type": "url", "placeholder": "https://mystore.com"}}'::jsonb,
- ARRAY((SELECT id FROM sectors WHERE slug = 'e-commerce'))),
-
-('Booking System', 'booking-system', 'car-rental', 'Car rental booking system integration',
- '{"api_endpoint": {"required": true, "label": "API Endpoint", "type": "url", "placeholder": "https://api.yourcarrental.com"},
-   "api_key": {"required": true, "label": "API Key", "type": "password", "placeholder": "Enter your booking system API key"}}'::jsonb,
- ARRAY((SELECT id FROM sectors WHERE slug = 'car-rental')));
+ ARRAY((SELECT id FROM sectors WHERE slug = 'e-commerce')));
 
 -- Örnek Agent Templates
 INSERT INTO agent_templates (name, slug, description, sector_id, agent_type, capabilities, default_prompt, requires_voice, pricing_model, base_price, icon, tags, configuration_schema, is_active, is_featured) 

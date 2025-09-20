@@ -11,12 +11,13 @@ import {
   getAgentConfigTabs,
 } from "@/features/admin/utils/agent-helpers";
 
-import { GeneralSettings } from "./GeneralSettings";
 import { IntegrationSettings } from "./IntegrationSettings";
 import { ModalFooter } from "./ModalFooter";
-import { ModalHeader } from "./ModalHeader";
+
 import { VoiceSettings } from "./VoiceSettings";
 import { ModalTabs } from "./ModalTabs";
+import GeneralSettings from "./GeneralSettings";
+import { ModalHeader } from "./ModalHeader";
 
 interface AgentConfigModalProps {
   isOpen: boolean;
@@ -141,7 +142,6 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
           <div className="px-6 py-6 max-h-96 overflow-y-auto">
             {activeTab === "general" && (
               <GeneralSettings
-                agent={agent}
                 formData={formData}
                 onChange={handleInputChange}
               />
@@ -149,7 +149,7 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
 
             {activeTab === "voice" && isVoiceAgent(agent) && (
               <VoiceSettings
-                agent={agent}
+                // agent={agent}
                 formData={formData}
                 onChange={handleInputChange}
                 onVoiceSelect={(voice) => {

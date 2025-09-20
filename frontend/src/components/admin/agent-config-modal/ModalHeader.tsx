@@ -1,54 +1,43 @@
+import { Button } from "@/components/ui";
 import { AgentType } from "@/types/admin.types";
+import { Bot, Car, ShoppingCart, X } from "lucide-react";
 
-// Sub-components for better organization
-export const ModalHeader = ({
-  agent,
-  onClose,
-}: {
+const AgentIcon: React.FC<{ icon: string; className?: string }> = ({
+  icon,
+  className = "w-5 h-5",
+}) => {
+  const icons = {
+    "shopping-cart": ShoppingCart,
+    car: Car,
+    support: Bot,
+    default: Bot,
+  };
+
+  const IconComponent = icons[icon as keyof typeof icons] || icons.default;
+  return <IconComponent className={className} />;
+};
+
+export const ModalHeader: React.FC<{
   agent: AgentType;
   onClose: () => void;
-}) => (
-  <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-3">
-        <div
-          className={`w-10 h-10 rounded-lg ${agent.color} flex items-center justify-center text-white`}
-        >
-          <span className="text-lg">
-            {agent.icon === "shopping-cart"
-              ? "🛒"
-              : agent.icon === "car"
-              ? "🚗"
-              : agent.icon === "support"
-              ? "🤖"
-              : "🤖"}
-          </span>
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Configure {agent.name}
-          </h3>
-          <p className="text-sm text-gray-600">{agent.description}</p>
-        </div>
+}> = ({ agent, onClose }) => (
+  <div className="flex items-center justify-between p-6 border-b border-gray-100">
+    <div className="flex items-center gap-4">
+      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+        <AgentIcon icon={agent.icon} className="w-5 h-5 text-gray-600" />
       </div>
-      <button
-        onClick={onClose}
-        className="text-gray-400 hover:text-gray-600 transition-colors"
-      >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
+      <div>
+        <h2 className="text-lg font-medium text-gray-900">{agent.name}</h2>
+        <p className="text-sm text-gray-500 mt-0.5">{agent.description}</p>
+      </div>
     </div>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onClose}
+      className="h-8 w-8 p-0 hover:bg-gray-50"
+    >
+      <X className="h-4 w-4 text-gray-400" />
+    </Button>
   </div>
 );

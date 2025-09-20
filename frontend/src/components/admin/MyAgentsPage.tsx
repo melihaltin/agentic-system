@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { use, useState } from "react";
 import { AgentType } from "@/types/admin.types";
 import { useAgents } from "@/features/admin/hooks/useAgents";
 import AgentCard from "./AgentCard";
@@ -13,13 +13,15 @@ import {
   FiRewind,
 } from "react-icons/fi";
 import AgentConfigModal from "./agent-config-modal/AgentConfigModal";
-
+import { useAuthStore } from "@/store/auth";
 
 const MyAgentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<AgentType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const businessCategory = "ecommerce";
+  const businessCategory = useAuthStore(
+    (state) => state.profile?.company?.business_category
+  );
 
   const {
     agents,

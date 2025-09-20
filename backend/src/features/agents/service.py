@@ -17,7 +17,9 @@ class ElevenLabsService:
 
     def __init__(self):
         self.api_key = settings.elevenlabs_api_key
-        print(f"🔑 Initializing ElevenLabsService with provided API key: {self.api_key}")
+        print(
+            f"🔑 Initializing ElevenLabsService with provided API key: {self.api_key}"
+        )
         self.base_url = "https://api.elevenlabs.io/v1"
         self.headers = {"xi-api-key": self.api_key, "Content-Type": "application/json"}
 
@@ -132,16 +134,12 @@ class ElevenLabsService:
 
             if existing.data:
                 # Update existing voice
-                result = (
-                    supabase.table("agent_voices")
-                    .update(voice_data)
-                    .eq("voice_id", voice.voice_id)
-                    .eq("provider", "elevenlabs")
-                    .execute()
-                )
+                supabase.table("agent_voices").update(voice_data).eq(
+                    "voice_id", voice.voice_id
+                ).eq("provider", "elevenlabs").execute()
             else:
                 # Insert new voice
-                result = supabase.table("agent_voices").insert(voice_data).execute()
+                supabase.table("agent_voices").insert(voice_data).execute()
 
             return True
 
@@ -230,3 +228,289 @@ class ElevenLabsService:
 
 # Service instance
 elevenlabs_service = ElevenLabsService()
+
+
+class AgentManagementService:
+    """Service for agent management operations"""
+
+    @staticmethod
+    async def get_sectors(is_active: Optional[bool] = True) -> List[Dict[str, Any]]:
+        """Get all sectors"""
+        try:
+            query = supabase.table("sectors").select("*")
+            if is_active is not None:
+                query = query.eq("is_active", is_active)
+
+            result = query.order("name").execute()
+            return result.data
+        except Exception as e:
+            logger.error(f"Error fetching sectors: {e}")
+            raise
+
+    @staticmethod
+    async def get_agent_templates_by_sector(sector_id: str) -> List[Dict[str, Any]]:
+        """Get agent templates for a specific sector"""
+        try:
+            # Get basic templates for sector
+            templates_result = (
+                supabase.table("agent_templates")
+                .select(
+                    """
+                *,
+                sectors!inner(name, slug),
+                agent_voices(name)
+            """
+                )
+                .eq("sector_id", sector_id)
+                .eq("is_active", True)
+                .order("is_featured", desc=True)
+                .order("sort_order")
+                .order("name")
+                .execute()
+            )
+
+            templates = templates_result.data if templates_result.data else []
+
+            # Flatten the nested structure and get integrations for each template
+            for template in templates:
+                # Flatten sector info
+                if template.get("sectors"):
+                    template["sector_name"] = template["sectors"]["name"]
+                    template["sector_slug"] = template["sectors"]["slug"]
+
+                # Flatten voice info
+                if template.get("agent_voices"):
+                    template["default_voice_name"] = template["agent_voices"]["name"]
+                else:
+                    template["default_voice_name"] = None
+
+                # Clean up nested objects
+                template.pop("sectors", None)
+                template.pop("agent_voices", None)
+
+                # Get required integrations (if table exists)
+                try:
+                    integrations_result = (
+                        supabase.table("integration_providers")
+                        .select("*")
+                        .eq("is_active", True)
+                        .execute()
+                    )
+                    template["required_integrations"] = integrations_result.data or []
+                except Exception:
+                    template["required_integrations"] = []
+
+            return templates
+
+        except Exception as e:
+            logger.error(f"Error fetching agent templates for sector {sector_id}: {e}")
+            raise
+
+    @staticmethod
+    async def get_company_agents(company_id: str) -> List[Dict[str, Any]]:
+        """Get all agents for a company"""
+        try:
+            # Get company agents with related data using joins
+            result = (
+                supabase.table("company_agents")
+                .select(
+                    """
+                *,
+                agent_templates!inner(
+                    name,
+                    slug,
+                    description,
+                    agent_type,
+                    icon,
+                    capabilities,
+                    requires_voice,
+                    sectors!inner(name, slug)
+                ),
+                agent_voices(name, provider)
+            """
+                )
+                .eq("company_id", company_id)
+                .order("is_active", desc=True)
+                .order("created_at", desc=True)
+                .execute()
+            )
+
+            agents = result.data if result.data else []
+
+            # Flatten nested structure
+            for agent in agents:
+                if agent.get("agent_templates"):
+                    template = agent["agent_templates"]
+                    agent["template_name"] = template["name"]
+                    agent["template_slug"] = template["slug"]
+                    agent["template_description"] = template["description"]
+                    agent["agent_type"] = template["agent_type"]
+                    agent["icon"] = template["icon"]
+                    agent["capabilities"] = template["capabilities"]
+                    agent["requires_voice"] = template["requires_voice"]
+
+                    if template.get("sectors"):
+                        agent["sector_name"] = template["sectors"]["name"]
+                        agent["sector_slug"] = template["sectors"]["slug"]
+
+                if agent.get("agent_voices"):
+                    agent["voice_name"] = agent["agent_voices"]["name"]
+                    agent["voice_provider"] = agent["agent_voices"]["provider"]
+                else:
+                    agent["voice_name"] = None
+                    agent["voice_provider"] = None
+
+                # Clean up nested objects
+                agent.pop("agent_templates", None)
+                agent.pop("agent_voices", None)
+
+            return agents
+
+        except Exception as e:
+            logger.error(f"Error fetching company agents for {company_id}: {e}")
+            raise
+
+    @staticmethod
+    async def activate_agent_for_company(
+        company_id: str, agent_template_id: str, config: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """Activate an agent template for a company"""
+        try:
+            # Check if already activated
+            existing = (
+                supabase.table("company_agents")
+                .select("*")
+                .eq("company_id", company_id)
+                .eq("agent_template_id", agent_template_id)
+                .execute()
+            )
+
+            if existing.data:
+                # Update existing
+                update_data = {"is_active": True, "activated_at": "now()"}
+                if config:
+                    if config.get("custom_name"):
+                        update_data["custom_name"] = config["custom_name"]
+                    if config.get("custom_prompt"):
+                        update_data["custom_prompt"] = config["custom_prompt"]
+                    if config.get("selected_voice_id"):
+                        update_data["selected_voice_id"] = config["selected_voice_id"]
+                    if config.get("configuration"):
+                        update_data["configuration"] = config["configuration"]
+
+                result = (
+                    supabase.table("company_agents")
+                    .update(update_data)
+                    .eq("id", existing.data[0]["id"])
+                    .execute()
+                )
+                return result.data[0] if result.data else {}
+            else:
+                # Create new
+                agent_data = {
+                    "company_id": company_id,
+                    "agent_template_id": agent_template_id,
+                    "is_active": True,
+                    "activated_at": "now()",
+                    "configuration": config.get("configuration", {}) if config else {},
+                }
+
+                if config:
+                    if config.get("custom_name"):
+                        agent_data["custom_name"] = config["custom_name"]
+                    if config.get("custom_prompt"):
+                        agent_data["custom_prompt"] = config["custom_prompt"]
+                    if config.get("selected_voice_id"):
+                        agent_data["selected_voice_id"] = config["selected_voice_id"]
+                    if config.get("monthly_limit"):
+                        agent_data["monthly_limit"] = config["monthly_limit"]
+                    if config.get("daily_limit"):
+                        agent_data["daily_limit"] = config["daily_limit"]
+
+                result = supabase.table("company_agents").insert(agent_data).execute()
+                return result.data[0] if result.data else {}
+
+        except Exception as e:
+            logger.error(f"Error activating agent for company {company_id}: {e}")
+            raise
+
+    @staticmethod
+    async def deactivate_agent_for_company(company_id: str, agent_id: str) -> bool:
+        """Deactivate an agent for a company"""
+        try:
+            result = (
+                supabase.table("company_agents")
+                .update({"is_active": False})
+                .eq("company_id", company_id)
+                .eq("id", agent_id)
+                .execute()
+            )
+
+            return len(result.data) > 0
+
+        except Exception as e:
+            logger.error(
+                f"Error deactivating agent {agent_id} for company {company_id}: {e}"
+            )
+            raise
+
+    @staticmethod
+    async def update_company_agent(
+        company_id: str, agent_id: str, updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update company agent configuration"""
+        try:
+            # Only allow updates to specific fields
+            allowed_fields = [
+                "custom_name",
+                "custom_prompt",
+                "selected_voice_id",
+                "configuration",
+                "monthly_limit",
+                "daily_limit",
+                "is_active",
+            ]
+
+            update_data = {k: v for k, v in updates.items() if k in allowed_fields}
+
+            if update_data:
+                result = (
+                    supabase.table("company_agents")
+                    .update(update_data)
+                    .eq("company_id", company_id)
+                    .eq("id", agent_id)
+                    .execute()
+                )
+                return result.data[0] if result.data else {}
+
+            return {}
+
+        except Exception as e:
+            logger.error(f"Error updating company agent {agent_id}: {e}")
+            raise
+
+    @staticmethod
+    async def get_integration_providers(
+        category: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get integration providers"""
+        try:
+            query = (
+                supabase.table("integration_providers")
+                .select("*")
+                .eq("is_active", True)
+            )
+
+            if category:
+                query = query.eq("category", category)
+
+            result = query.order("name").execute()
+            return result.data
+
+        except Exception as e:
+            logger.error(f"Error fetching integration providers: {e}")
+            raise
+
+
+# Service instance
+agent_service = AgentManagementService()

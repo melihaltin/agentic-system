@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS company_profile (
     company_name VARCHAR(255) NOT NULL,
     phone_number VARCHAR(50),
     business_category VARCHAR(100), -- Bu artık sector_id ile ilişkilendirilecek
+    sector_id UUID REFERENCES sectors(id) ON DELETE SET NULL, -- Yeni alan eklendi
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     address TEXT,
@@ -578,7 +579,11 @@ CREATE POLICY "Companies can view own integration logs" ON integration_logs
 
 -- Örnek Sektörler
 INSERT INTO sectors (name, slug, description) VALUES
-('E-Commerce', 'e-commerce', 'E-commerce Agents');
+('E-Commerce', 'e-commerce', 'Online retail and shopping platforms'),
+('Car Rental', 'car-rental', 'Vehicle rental and fleet management'),
+('Real Estate', 'real-estate', 'Property management and real estate services'),
+('Healthcare', 'healthcare', 'Medical and healthcare services'),
+('Finance', 'finance', 'Financial services and banking');
 
 -- Örnek Sesler
 INSERT INTO agent_voices (name, provider, voice_id, language, gender, age_group) VALUES
@@ -588,16 +593,76 @@ INSERT INTO agent_voices (name, provider, voice_id, language, gender, age_group)
 ('Can - Samimi', 'azure', 'tr-TR-AhmetNeural', 'tr-TR', 'male', 'young');
 
 -- Örnek Entegrasyon Sağlayıcıları
-INSERT INTO integration_providers (name, slug, category, description, required_credentials) VALUES
+INSERT INTO integration_providers (name, slug, category, description, required_credentials, applicable_sectors) VALUES
 ('Shopify', 'shopify', 'e-commerce', 'Shopify mağaza entegrasyonu', 
  '{"api_key": {"required": true, "label": "Admin API Access Token", "type": "password", "placeholder": "shpat_xxxxx"}, 
    "store_url": {"required": true, "label": "Store URL", "type": "url", "placeholder": "mystore.myshopify.com"},
-   "api_version": {"required": false, "label": "API Version", "type": "text", "default": "2024-01"}}'::jsonb),
+   "api_version": {"required": false, "label": "API Version", "type": "text", "default": "2024-01"}}'::jsonb,
+ ARRAY((SELECT id FROM sectors WHERE slug = 'e-commerce'))),
 
 ('WooCommerce', 'woocommerce', 'e-commerce', 'WooCommerce WordPress entegrasyonu',
  '{"consumer_key": {"required": true, "label": "Consumer Key", "type": "password"},
    "consumer_secret": {"required": true, "label": "Consumer Secret", "type": "password"},
-   "site_url": {"required": true, "label": "Site URL", "type": "url", "placeholder": "https://mystore.com"}}'::jsonb);
+   "site_url": {"required": true, "label": "Site URL", "type": "url", "placeholder": "https://mystore.com"}}'::jsonb,
+ ARRAY((SELECT id FROM sectors WHERE slug = 'e-commerce'))),
+
+('Booking System', 'booking-system', 'car-rental', 'Car rental booking system integration',
+ '{"api_endpoint": {"required": true, "label": "API Endpoint", "type": "url", "placeholder": "https://api.yourcarrental.com"},
+   "api_key": {"required": true, "label": "API Key", "type": "password", "placeholder": "Enter your booking system API key"}}'::jsonb,
+ ARRAY((SELECT id FROM sectors WHERE slug = 'car-rental')));
+
+-- Örnek Agent Templates
+INSERT INTO agent_templates (name, slug, description, sector_id, agent_type, capabilities, default_prompt, requires_voice, pricing_model, base_price, icon, tags, configuration_schema, is_active, is_featured) 
+SELECT 
+  'Voice Shopping Assistant',
+  'ecommerce-voice-assistant',
+  'Voice-activated shopping assistant for hands-free browsing',
+  (SELECT id FROM sectors WHERE slug = 'e-commerce'),
+  'voice',
+  '["voice_call", "product_search", "order_tracking"]'::jsonb,
+  'You are a helpful shopping assistant. Help customers find products and complete their purchases.',
+  true,
+  'per_minute',
+  0.25,
+  'shopping-cart',
+  ARRAY['voice', 'shopping', 'e-commerce'],
+  '{"personality": {"type": "select", "options": ["Friendly", "Professional", "Casual"], "default": "Friendly"}, "max_session_duration": {"type": "number", "min": 5, "max": 60, "default": 20}}'::jsonb,
+  true,
+  true
+UNION ALL
+SELECT 
+  'Abandoned Cart Recovery',
+  'ecommerce-abandoned-cart',
+  'Automated system to recover abandoned shopping carts',
+  (SELECT id FROM sectors WHERE slug = 'e-commerce'),
+  'voice',
+  '["voice_call", "cart_recovery", "product_recommendation"]'::jsonb,
+  'You are a friendly assistant helping customers complete their abandoned purchases.',
+  true,
+  'per_minute',
+  0.30,
+  'shopping-cart',
+  ARRAY['voice', 'recovery', 'e-commerce'],
+  '{"personality": {"type": "select", "options": ["Friendly", "Professional", "Casual"], "default": "Friendly"}, "max_session_duration": {"type": "number", "min": 5, "max": 30, "default": 15}}'::jsonb,
+  true,
+  false
+UNION ALL
+SELECT 
+  'Booking Assistant',
+  'car-rental-booking',
+  'Help customers find and book rental vehicles',
+  (SELECT id FROM sectors WHERE slug = 'car-rental'),
+  'voice',
+  '["voice_call", "vehicle_search", "booking_management"]'::jsonb,
+  'You are a professional car rental assistant helping customers find and book vehicles.',
+  true,
+  'per_minute',
+  0.35,
+  'car',
+  ARRAY['voice', 'booking', 'car-rental'],
+  '{"personality": {"type": "select", "options": ["Professional", "Friendly"], "default": "Professional"}, "max_session_duration": {"type": "number", "min": 10, "max": 45, "default": 20}}'::jsonb,
+  true,
+  true;
 
 
 """

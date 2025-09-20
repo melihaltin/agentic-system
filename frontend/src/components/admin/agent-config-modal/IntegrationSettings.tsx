@@ -26,8 +26,22 @@ export const IntegrationSettings = ({
   onChange,
 }: IntegrationSettingsProps) => {
   // Determine available platforms based on agent category
-  const availablePlatforms =
-    agent.category === "ecommerce" ? ECOMMERCE_PLATFORMS : CAR_RENTAL_PLATFORMS;
+  console.log("IntegrationSettings - Agent ID:", agent.id);
+  console.log("IntegrationSettings - Agent category:", agent.category);
+  console.log("IntegrationSettings - Full agent:", agent);
+
+  const isEcommerce =
+    agent.category === "ecommerce" || agent.category === "e-commerce";
+  const availablePlatforms = isEcommerce
+    ? ECOMMERCE_PLATFORMS
+    : CAR_RENTAL_PLATFORMS;
+
+  console.log(
+    "Is ecommerce:",
+    isEcommerce,
+    "Available platforms:",
+    availablePlatforms
+  ); // Debug log
 
   // Get existing integrations from agent settings
   const existingIntegrations = agent.settings.integrationConfigs || {};

@@ -13,6 +13,7 @@ export type AgentCommunicationType = "voice" | "chat" | "hybrid";
 // Specific agent within a business category
 export interface AgentType {
   id: string;
+  originalName?: string; // orijinal adı sakla
   name: string;
   description: string;
   icon: string;

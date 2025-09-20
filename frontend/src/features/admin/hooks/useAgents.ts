@@ -165,6 +165,14 @@ export const useAgents = (businessCategory?: string) => {
         };
       }
 
+      // Set category from sector_slug (backend provides this)
+
+      // Set category from sector_slug (backend provides this)
+      const categoryFromSlug = agent.slug || templateData?.slug || "general";
+      const category = categoryFromSlug.includes("-")
+        ? categoryFromSlug.split("-")[0]
+        : categoryFromSlug;
+
       return {
         id: agent.id,
         name:
@@ -172,6 +180,9 @@ export const useAgents = (businessCategory?: string) => {
           agent.template_name ||
           templateData?.name ||
           agent.name,
+
+        originalName: templateData?.name || agent.name,
+
         description:
           agent.template_description ||
           templateData?.description ||
@@ -179,7 +190,7 @@ export const useAgents = (businessCategory?: string) => {
           "",
         icon: agent.icon || templateData?.icon || "default",
         color: templateData?.color || "bg-blue-500",
-        category: agent.sector_slug || templateData?.sector_slug || "general",
+        category: category,
         communicationType: (agent.agent_type ||
           templateData?.agent_type) as any,
         isActive: agent.is_active || false,
@@ -220,8 +231,9 @@ export const useAgents = (businessCategory?: string) => {
               templateIcon: templateData.icon,
               templateAgentType: templateData.agent_type,
               templateRequiredIntegrations: templateData.required_integrations,
+              ...agent.template_info && { originalTemplateInfo: agent.template_info },
             }
-          : undefined,
+          : agent.template_info || undefined,
       };
     });
   };

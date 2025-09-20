@@ -83,6 +83,8 @@ const MyAgentsPage: React.FC = () => {
       agent.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  console.log("321321321:", agents);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

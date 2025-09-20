@@ -58,7 +58,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                {agent.name}
+                {agent.originalName ?? agent.name}
               </h3>
               <p className="text-sm text-gray-500 leading-relaxed">
                 {agent.description}

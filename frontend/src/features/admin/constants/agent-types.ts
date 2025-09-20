@@ -5,19 +5,17 @@ export const AGENT_COMMUNICATION_TYPES = {
 } as const;
 
 export const AGENT_CATEGORIES = {
-  ECOMMERCE: "ecommerce" as const,
+  ECOMMERCE: "e-commerce" as const,
   CAR_RENTAL: "car-rental" as const,
   HOSPITALITY: "hospitality" as const,
 } as const;
 
-
-
-// E-commerce platforms for integration
+// E-commerce platforms for integration (Sadece Shopify)
 export const ECOMMERCE_PLATFORMS = [
   {
     id: "shopify",
     name: "Shopify",
-    description: "Shopify e-commerce platform",
+    description: "Shopify e-commerce platform integration",
   },
 ] as const;
 
@@ -26,29 +24,19 @@ export const CAR_RENTAL_PLATFORMS = [
   {
     id: "custom_booking",
     name: "Custom Booking System",
-    description: "Custom car rental booking API",
-  },
-  {
-    id: "rentals_united",
-    name: "Rentals United",
-    description: "Car rental management system",
-  },
-  {
-    id: "booking_manager",
-    name: "Booking Manager",
-    description: "Fleet booking management",
+    description: "Custom car rental booking API integration",
   },
 ] as const;
 
-// Platform fields configuration
+// Platform fields configuration (Sadece Shopify ve Custom Booking)
 export const PLATFORM_FIELDS = {
   shopify: [
     {
       id: "apiKey",
-      name: "API Key",
+      name: "Admin API Access Token",
       type: "password",
       required: true,
-      placeholder: "Enter your Shopify API key",
+      placeholder: "shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     },
     {
       id: "storeUrl",
@@ -58,82 +46,11 @@ export const PLATFORM_FIELDS = {
       placeholder: "yourstore.myshopify.com",
     },
     {
-      id: "accessToken",
-      name: "Access Token",
-      type: "password",
-      required: true,
-      placeholder: "Enter access token",
-    },
-  ],
-  woocommerce: [
-    {
-      id: "consumerKey",
-      name: "Consumer Key",
+      id: "apiVersion",
+      name: "API Version",
       type: "text",
-      required: true,
-      placeholder: "ck_...",
-    },
-    {
-      id: "consumerSecret",
-      name: "Consumer Secret",
-      type: "password",
-      required: true,
-      placeholder: "cs_...",
-    },
-    {
-      id: "storeUrl",
-      name: "Store URL",
-      type: "url",
-      required: true,
-      placeholder: "https://yourstore.com",
-    },
-  ],
-  magento: [
-    {
-      id: "accessToken",
-      name: "Access Token",
-      type: "password",
-      required: true,
-      placeholder: "Enter access token",
-    },
-    {
-      id: "storeUrl",
-      name: "Store URL",
-      type: "url",
-      required: true,
-      placeholder: "https://yourstore.com",
-    },
-  ],
-  prestashop: [
-    {
-      id: "apiKey",
-      name: "API Key",
-      type: "password",
-      required: true,
-      placeholder: "Enter PrestaShop API key",
-    },
-    {
-      id: "storeUrl",
-      name: "Store URL",
-      type: "url",
-      required: true,
-      placeholder: "https://yourstore.com",
-    },
-  ],
-  bigcommerce: [
-    {
-      id: "storeHash",
-      name: "Store Hash",
-      type: "text",
-      required: true,
-      placeholder: "Enter store hash",
-    },
-    {
-      id: "accessToken",
-      name: "Access Token",
-      type: "password",
-      required: true,
-      placeholder: "Enter access token",
+      required: false,
+      placeholder: "2024-01",
     },
   ],
   custom_booking: [
@@ -149,39 +66,7 @@ export const PLATFORM_FIELDS = {
       name: "API Key",
       type: "password",
       required: true,
-      placeholder: "Enter API key",
-    },
-  ],
-  rentals_united: [
-    {
-      id: "username",
-      name: "Username",
-      type: "text",
-      required: true,
-      placeholder: "Enter username",
-    },
-    {
-      id: "password",
-      name: "Password",
-      type: "password",
-      required: true,
-      placeholder: "Enter password",
-    },
-  ],
-  booking_manager: [
-    {
-      id: "apiKey",
-      name: "API Key",
-      type: "password",
-      required: true,
-      placeholder: "Enter API key",
-    },
-    {
-      id: "endpoint",
-      name: "Endpoint",
-      type: "url",
-      required: true,
-      placeholder: "https://api.bookingmanager.com",
+      placeholder: "Enter your booking system API key",
     },
   ],
 } as const;

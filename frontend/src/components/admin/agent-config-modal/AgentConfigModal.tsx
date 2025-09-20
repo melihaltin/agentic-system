@@ -1,12 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { AgentType, VoiceAgentSettings } from "@/types/admin.types";
+import {
+  AgentType,
+  VoiceAgentSettings,
+  VoiceOption,
+} from "@/types/admin.types";
 import {
   isVoiceAgent,
   getAgentConfigTabs,
 } from "@/features/admin/utils/agent-helpers";
-import { useVoiceOptions } from "@/features/admin/hooks/useVoiceOptions";
+
 import { GeneralSettings } from "./GeneralSettings";
 import { IntegrationSettings } from "./IntegrationSettings";
 import { ModalFooter } from "./ModalFooter";
@@ -34,11 +38,6 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
   const [platformConfig, setPlatformConfig] = useState<Record<string, string>>(
     {}
   );
-  const {
-    voiceOptions,
-    isLoading: isLoadingVoices,
-    playVoicePreview,
-  } = useVoiceOptions();
 
   useEffect(() => {
     if (isOpen) {
@@ -65,13 +64,14 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
         },
       }));
     } else if (name === "voice") {
-      const selectedVoice = voiceOptions.find((v) => v.id === value);
-      if (selectedVoice && isVoiceAgent(agent)) {
+      // Voice selection is now handled by VoiceSelector component directly
+      // This branch may not be used anymore, but keeping for compatibility
+      if (isVoiceAgent(agent)) {
         setFormData((prev) => ({
           ...prev,
           settings: {
             ...prev.settings,
-            voice: selectedVoice,
+            voice: { id: value } as VoiceOption,
           } as VoiceAgentSettings,
         }));
       }
@@ -152,9 +152,17 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
                 agent={agent}
                 formData={formData}
                 onChange={handleInputChange}
-                voiceOptions={voiceOptions}
-                isLoadingVoices={isLoadingVoices}
-                onPlayPreview={playVoicePreview}
+                onVoiceSelect={(voice) => {
+                  if (isVoiceAgent(agent)) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      settings: {
+                        ...prev.settings,
+                        voice: voice,
+                      } as VoiceAgentSettings,
+                    }));
+                  }
+                }}
               />
             )}
 

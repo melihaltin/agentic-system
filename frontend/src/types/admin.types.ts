@@ -54,9 +54,23 @@ export type AgentSettings = VoiceAgentSettings | ChatAgentSettings;
 export interface VoiceOption {
   id: string;
   name: string;
+  provider: string;
+  voice_id: string;
   language: string;
-  gender: "male" | "female";
-  preview: string; // URL to preview audio
+  gender?: "male" | "female" | "neutral";
+  age_group?: "young" | "middle" | "old";
+  accent?: string;
+  sample_url?: string;
+  is_premium: boolean;
+  is_active: boolean;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VoicesResponse {
+  voices: VoiceOption[];
+  total: number;
 }
 
 // Platform integrations required by agents

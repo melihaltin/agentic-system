@@ -1,4 +1,3 @@
-import { LANGUAGE_OPTIONS } from "@/features/admin/constants/agent-types";
 import { isVoiceSettings } from "@/features/admin/utils/agent-helpers";
 import { AgentType } from "@/types/admin.types";
 
@@ -27,24 +26,6 @@ export const VoiceSettings = ({
 
   return (
     <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Language
-        </label>
-        <select
-          name="language"
-          value={formData.settings.language}
-          onChange={onChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          {LANGUAGE_OPTIONS.map((language) => (
-            <option key={language} value={language}>
-              {language}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {voiceSettings && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">

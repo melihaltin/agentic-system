@@ -1,12 +1,3 @@
-import {
-  RESPONSE_SPEED_OPTIONS,
-  RESPONSE_STYLE_OPTIONS,
-} from "@/features/admin/constants/agent-types";
-import {
-  isChatSettings,
-  isVoiceAgent,
-  isVoiceSettings,
-} from "@/features/admin/utils/agent-helpers";
 import { AgentType } from "@/types/admin.types";
 
 export const GeneralSettings = ({
@@ -22,13 +13,6 @@ export const GeneralSettings = ({
     >
   ) => void;
 }) => {
-  const voiceSettings = isVoiceSettings(formData.settings)
-    ? formData.settings
-    : null;
-  const chatSettings = isChatSettings(formData.settings)
-    ? formData.settings
-    : null;
-
   return (
     <div className="space-y-6">
       <div>
@@ -67,7 +51,7 @@ export const GeneralSettings = ({
       )} */}
 
       {/* Only show response speed and max session for voice agents */}
-      {isVoiceAgent(agent) && voiceSettings && (
+      {/* {isVoiceAgent(agent) && voiceSettings && (
         <>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -102,7 +86,7 @@ export const GeneralSettings = ({
             />
           </div>
         </>
-      )}
+      )} */}
     </div>
   );
 };

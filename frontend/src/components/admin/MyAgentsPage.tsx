@@ -28,6 +28,8 @@ const MyAgentsPage: React.FC = () => {
   };
 
   const handleSaveAgentConfig = async (updatedAgent: AgentType) => {
+    console.log("Saving agent config:", updatedAgent);
+
     await updateAgent(updatedAgent);
     setIsModalOpen(false);
     setSelectedAgent(null);

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.features.auth.router import router as auth_router
+from src.features.agents.router import router as voices_router
 
 app = FastAPI(
     title="Team AI Backend API",
@@ -19,6 +20,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(voices_router)
 
 
 @app.get("/")

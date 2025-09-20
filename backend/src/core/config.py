@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
+    # ElevenLabs
+    elevenlabs_api_key: str
+
     # App
     app_name: str = "IQRA"
     debug: bool = False

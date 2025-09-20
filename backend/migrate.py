@@ -602,6 +602,7 @@ INSERT INTO integration_providers (name, slug, category, description, required_c
 
 """
 
+
 try:
     result = supabase.rpc("exec_sql", {"sql": sql}).execute()
     print("Migration completed successfully!")

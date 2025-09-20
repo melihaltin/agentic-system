@@ -22,3 +22,4 @@ You are an expert in Python, FastAPI, and scalable API development.
 - Always include type hints for parameters and return values
 - Use Pydantic models for request/response validation
 
+

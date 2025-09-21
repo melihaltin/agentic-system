@@ -129,13 +129,13 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div className="flex min-h-screen items-center justify-center px-4 py-6">
         <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          className="fixed inset-0 bg-[rgba(0,0,0,0.5)] backdrop-blur-sm transition-opacity"
           onClick={handleClose}
         />
 
-        <div className="relative inline-block w-full max-w-4xl my-8 overflow-hidden text-left align-middle bg-white rounded-xl shadow-xl transition-all">
+        <div className="relative inline-block w-full max-w-6xl overflow-hidden text-left align-middle bg-white rounded-xl shadow-2xl transition-all transform">
           <ModalHeader agent={agent} onClose={handleClose} />
           <ModalTabs
             tabs={tabs}
@@ -143,7 +143,7 @@ const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
             onTabChange={setActiveTab}
           />
 
-          <div className="px-6 py-6 max-h-96 overflow-y-auto">
+          <div className="px-8 py-8 max-h-[70vh] overflow-y-auto">
             {activeTab === "general" && (
               <GeneralSettings
                 formData={formData}

@@ -107,6 +107,7 @@ const ChevronRight = ({ className }: { className?: string }) => (
   </svg>
 );
 import { AdminSection } from "@/types/admin.types";
+import { useAuthStore } from "@/store/auth";
 
 interface AdminSidebarProps {
   activeSection: AdminSection;
@@ -124,6 +125,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const params = useParams();
   const locale = params.locale as string;
   const t = useTranslations("admin.sidebar");
+
+  const profile = useAuthStore((state) => state.user);
+  const user = useAuthStore((state) => state.profile);
 
   const menuItems = [
     {
@@ -238,11 +242,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                Admin User
+                {user?.company?.company_name || "Admin User"}
               </p>
-              <p className="text-xs text-gray-500 truncate">
-                admin@company.com
-              </p>
+              <p className="text-xs text-gray-500 truncate">{profile?.email}</p>
             </div>
           </div>
         </div>

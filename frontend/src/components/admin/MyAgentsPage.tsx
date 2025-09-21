@@ -1,22 +1,15 @@
 "use client";
 
-import React, { use, useState } from "react";
+import React, { useState } from "react";
 import { AgentType } from "@/types/admin.types";
 import { useAgents } from "@/features/admin/hooks/useAgents";
 import AgentCard from "./AgentCard";
 
-import {
-  FiSearch,
-  FiUsers,
-  FiCheckCircle,
-  FiTrendingUp,
-  FiRewind,
-} from "react-icons/fi";
+import { FiUsers, FiCheckCircle, FiTrendingUp, FiRewind } from "react-icons/fi";
 import AgentConfigModal from "./agent-config-modal/AgentConfigModal";
 import { useAuthStore } from "@/store/auth";
 
 const MyAgentsPage: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<AgentType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const businessCategory = useAuthStore(
@@ -76,12 +69,8 @@ const MyAgentsPage: React.FC = () => {
     setSelectedAgent(null);
   };
 
-  // Filter agents based on search query
-  const filteredAgents = agents.filter(
-    (agent) =>
-      agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Ajanları doğrudan kullan, filtrelemeye gerek yok
+  const displayedAgents = agents;
 
   console.log("321321321:", agents);
 
@@ -110,20 +99,7 @@ const MyAgentsPage: React.FC = () => {
                 Configure and manage your AI agents with ease
               </p>
             </div>
-
-            {/* Search */}
-            <div className="relative w-full lg:w-80">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <FiSearch className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search agents..."
-                className="block w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/50 transition-all"
-              />
-            </div>
+            {/* Arama çubuğu kaldırıldı */}
           </div>
 
           {/* Stats */}
@@ -150,7 +126,7 @@ const MyAgentsPage: React.FC = () => {
         </div>
 
         {/* Agents Grid */}
-        {filteredAgents.length === 0 ? (
+        {displayedAgents.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
             <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <FiRewind className="w-10 h-10 text-gray-400" />
@@ -159,14 +135,12 @@ const MyAgentsPage: React.FC = () => {
               No agents found
             </h3>
             <p className="text-gray-500 text-lg">
-              {searchQuery
-                ? `No agents match your search "${searchQuery}"`
-                : "You haven't created any agents yet."}
+              You haven't created any agents yet.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {filteredAgents.map((agent) => (
+            {displayedAgents.map((agent) => (
               <AgentCard
                 key={agent.id}
                 agent={agent}

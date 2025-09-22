@@ -148,10 +148,15 @@ Happy shopping! 🛍️"""
         agent_name = self.call_config.get("agent_name", "AI Assistant")
         customer_type = self.call_config.get("customer_type", "regular")
 
+        # Extract cart data for personalized conversation
+        cart_data = self.call_config.get("cart_data", [])
+        platform_data = self.call_config.get("platform_data", {})
+
         company_name = business_info.get("company_name", "our company")
         company_description = business_info.get("description", "")
+        company_website = business_info.get("website", "")
 
-        # Build dynamic system prompt
+        # Build dynamic system prompt with cart details
         prompt_parts = [
             f"You are a professional and friendly AI customer service representative for {company_name}.",
             f"Your name is {agent_name}.",
@@ -160,9 +165,51 @@ Happy shopping! 🛍️"""
         if company_description:
             prompt_parts.append(f"Company description: {company_description}")
 
+        if company_website:
+            prompt_parts.append(f"Company website: {company_website}")
+
+        # Add customer-specific information
         prompt_parts.extend(
             [
                 f"You are calling customer {customer_name if customer_name else 'the customer'}.",
+                f"Customer type: {customer_type}",
+            ]
+        )
+
+        # Add cart-specific details for personalized conversation
+        if cart_data:
+            total_cart_value = 0
+            cart_items = []
+
+            for cart in cart_data:
+                cart_value = cart.get("total_value", 0)
+                total_cart_value += cart_value
+
+                items = cart.get("items", [])
+                for item in items:
+                    item_name = item.get("name") or item.get("title", "Unknown Product")
+                    item_price = item.get("price", 0)
+                    cart_items.append(f"{item_name} (${item_price})")
+
+            if cart_items:
+                prompt_parts.extend(
+                    [
+                        f"ABANDONED CART DETAILS:",
+                        f"- Total cart value: ${total_cart_value:.2f}",
+                        f"- Items in cart: {', '.join(cart_items[:3])}"
+                        + ("..." if len(cart_items) > 3 else ""),
+                    ]
+                )
+
+        # Add platform information
+        if platform_data:
+            platforms = list(platform_data.keys())
+            if platforms:
+                prompt_parts.append(f"Platform: {', '.join(platforms)}")
+
+        prompt_parts.extend(
+            [
+                f"CONVERSATION GOAL: Help the customer complete their purchase by offering a personalized discount.",
                 f"Customer type: {customer_type}",
                 "You understand all languages and will continue in whichever language the customer speaks.",
                 "Your conversation flow:",

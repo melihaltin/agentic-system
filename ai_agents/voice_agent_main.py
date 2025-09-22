@@ -34,14 +34,15 @@ def main():
     if not check_environment_variables():
         exit(1)
 
-    print("🤖 Twilio AI Voice Agent")
+    print("🤖 Twilio AI Voice Agent - Thread-Based System")
     print("1. Start with ElevenLabs TTS")
     print("2. Start with Twilio TTS")
     print("3. Make test call")
     print("4. Test ElevenLabs TTS (type text to convert to speech)")
-    print("5. Start API Server (for dynamic call requests)")
+    print("5. Start Thread-Based API Server (supports concurrent calls)")
+    print("6. Monitor Active Threads")
 
-    choice = input("Your choice (1-5): ").strip()
+    choice = input("Your choice (1-6): ").strip()
 
     if choice == "1":
         if not os.getenv("ELEVENLABS_API_KEY"):
@@ -135,22 +136,108 @@ def main():
                 print(f"❌ Error generating audio: {str(e)}")
 
     elif choice == "5":
-        print("🌐 Starting API Server for dynamic call requests...")
-        print("📡 Server will accept POST requests at /start-call endpoint")
+        print("🌐 Starting Thread-Based API Server...")
+        print("🧵 Server supports concurrent customer interactions")
+        print("📡 Accepts backend abandoned cart payloads and legacy API calls")
         print("📋 Use example_api_call.py to test the API")
 
         # Create default voice service (will be overridden dynamically)
         voice_service = VoiceConfig.create_twilio_config()
         app = create_webhook_server(voice_service)
 
-        print("🚀 API Server starting on http://localhost:5000")
-        print("📞 Webhook endpoints:")
-        print("   - POST /start-call (dynamic AI agent calls)")
+        print("🚀 Thread-Based API Server starting on http://localhost:5000")
+        print("📞 Available endpoints:")
+        print("   - POST /start-call (backend payloads & legacy calls)")
+        print("   - GET /threads (view all active threads)")
+        print("   - GET /threads/<thread_id> (view specific thread)")
+        print("   - POST /threads/<thread_id>/cancel (cancel thread)")
         print("   - POST /webhook/outbound/start (Twilio webhook)")
         print("   - POST /webhook/outbound/process (Twilio webhook)")
-        print("   - GET /health (health check)")
+        print("   - GET /health (health check with thread stats)")
+        print("")
+        print("🎯 Thread System Features:")
+        print("   - Concurrent customer interactions")
+        print("   - Individual agent instances per thread")
+        print("   - Real-time thread monitoring")
+        print("   - Automatic cleanup")
 
         app.run(host="0.0.0.0", port=5000, debug=False)
+
+    elif choice == "6":
+        print("🔍 Thread Monitor")
+        print("Monitor active voice agent threads in real-time")
+        print("Note: This requires the API server to be running on localhost:5000")
+
+        import requests
+        import time
+        import json
+
+        def monitor_threads():
+            try:
+                while True:
+                    response = requests.get("http://localhost:5000/threads", timeout=5)
+                    if response.status_code == 200:
+                        data = response.json()
+
+                        print("\n" + "=" * 60)
+                        print(f"📊 THREAD MONITOR - {time.strftime('%H:%M:%S')}")
+                        print("=" * 60)
+                        print(f"Total Active Threads: {data['total_threads']}")
+
+                        if data["status_summary"]:
+                            print("\nStatus Summary:")
+                            for status, count in data["status_summary"].items():
+                                print(f"  {status}: {count}")
+
+                        if data["threads"]:
+                            print("\nActive Threads:")
+                            for thread in data["threads"]:
+                                duration = ""
+                                if thread["started_at"]:
+                                    from datetime import datetime
+
+                                    start_time = datetime.fromisoformat(
+                                        thread["started_at"].replace("Z", "+00:00")
+                                    )
+                                    current_time = datetime.now(start_time.tzinfo)
+                                    duration = str(current_time - start_time).split(
+                                        "."
+                                    )[0]
+
+                                print(f"  🧵 {thread['thread_id']}")
+                                print(
+                                    f"     Customer: {thread['customer_name']} ({thread['customer_phone']})"
+                                )
+                                print(f"     Status: {thread['status']}")
+                                print(f"     Duration: {duration}")
+                                if thread["call_sid"]:
+                                    print(f"     Call SID: {thread['call_sid']}")
+                                if thread["conversation_length"] > 0:
+                                    print(
+                                        f"     Messages: {thread['conversation_length']}"
+                                    )
+                                print()
+                        else:
+                            print("\nNo active threads")
+
+                    else:
+                        print(
+                            f"❌ Failed to connect to API server: {response.status_code}"
+                        )
+                        break
+
+                    time.sleep(3)  # Update every 3 seconds
+
+            except requests.exceptions.ConnectionError:
+                print(
+                    "❌ Cannot connect to API server. Make sure it's running on localhost:5000"
+                )
+            except KeyboardInterrupt:
+                print("\n👋 Thread monitoring stopped")
+            except Exception as e:
+                print(f"❌ Error: {str(e)}")
+
+        monitor_threads()
 
     else:
         print("❌ Invalid choice.")

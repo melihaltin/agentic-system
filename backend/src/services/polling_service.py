@@ -148,81 +148,102 @@ class AgentIntegrationPoller:
             print("=" * 50)
 
             # Get abandoned cart agents
-            abandoned_cart_agents = await self.abandoned_cart_service.get_abandoned_cart_agents()
+            abandoned_cart_agents = (
+                await self.abandoned_cart_service.get_abandoned_cart_agents()
+            )
 
             if not abandoned_cart_agents:
                 print("📭 No abandoned cart agents found")
                 return
 
             print(f"🎯 Found {len(abandoned_cart_agents)} abandoned cart agents")
-            
+
             total_carts_processed = 0
             total_recovery_value = 0.0
 
             for agent in abandoned_cart_agents:
                 try:
                     # Extract agent information from the nested structure
-                    agent_info = agent.get('agent_info', {})
-                    company_info = agent.get('company_info', {})
-                    integrations = agent.get('integrations', {})
-                    
-                    agent_name = agent_info.get('custom_name', 'Unnamed Agent')
-                    company_name = company_info.get('company_name', 'Unknown Company')
-                    
+                    agent_info = agent.get("agent_info", {})
+                    company_info = agent.get("company_info", {})
+                    integrations = agent.get("integrations", {})
+
+                    agent_name = agent_info.get("custom_name", "Unnamed Agent")
+                    company_name = company_info.get("company_name", "Unknown Company")
+
                     print(f"\n🤖 Processing Agent: {agent_name}")
                     print(f"   🏢 Company: {company_name}")
-                    
+
                     # Process each integration platform for this agent
                     if integrations:
                         for platform_slug, integration_info in integrations.items():
                             try:
-                                platform_name = integration_info.get('provider_name', platform_slug)
-                                print(f"   📱 Platform: {platform_name} ({platform_slug})")
-                                
+                                platform_name = integration_info.get(
+                                    "provider_name", platform_slug
+                                )
+                                print(
+                                    f"   📱 Platform: {platform_name} ({platform_slug})"
+                                )
+
                                 # Generate mock data for this platform
                                 mock_data = self.abandoned_cart_service.generate_mock_abandoned_cart_data(
                                     platform_slug, company_info
                                 )
-                                
-                                if mock_data and mock_data.get('abandoned_carts'):
-                                    carts = mock_data['abandoned_carts']
-                                    recovery_value = sum(cart['total_value'] for cart in carts)
-                                    
-                                    print(f"      🛒 Generated {len(carts)} abandoned carts")
-                                    print(f"      💰 Recovery value: ${recovery_value:.2f}")
-                                    
+
+                                if mock_data and mock_data.get("abandoned_carts"):
+                                    carts = mock_data["abandoned_carts"]
+                                    recovery_value = sum(
+                                        cart["total_value"] for cart in carts
+                                    )
+
+                                    print(
+                                        f"      🛒 Generated {len(carts)} abandoned carts"
+                                    )
+                                    print(
+                                        f"      💰 Recovery value: ${recovery_value:.2f}"
+                                    )
+
                                     # Create enhanced payload
                                     payload = await self.abandoned_cart_service.create_abandoned_cart_payload(
                                         mock_data
                                     )
-                                    
-                                    # Send to external API (using default test endpoint)
+
+                                    # Send to external API (using HTTP not HTTPS for localhost)
                                     api_response = await self.abandoned_cart_service.send_to_external_api(
-                                        payload, "https://httpbin.org/post"
+                                        payload, "http://localhost:5000/start-call"
                                     )
-                                    
-                                    if api_response and api_response.get('status_code') == 200:
+
+                                    if (
+                                        api_response
+                                        and api_response.get("status_code") == 200
+                                    ):
                                         print(f"      ✅ Successfully sent to API")
                                         total_carts_processed += len(carts)
                                         total_recovery_value += recovery_value
                                     else:
-                                        print(f"      ❌ Failed to send to API: {api_response}")
+                                        print(
+                                            f"      ❌ Failed to send to API: {api_response}"
+                                        )
                                 else:
-                                    print(f"      📭 No abandoned carts found for {platform_name}")
-                                    
+                                    print(
+                                        f"      📭 No abandoned carts found for {platform_name}"
+                                    )
+
                             except Exception as platform_error:
-                                print(f"      ❌ Error processing platform {platform_slug}: {str(platform_error)}")
+                                print(
+                                    f"      ❌ Error processing platform {platform_slug}: {str(platform_error)}"
+                                )
                     else:
                         print(f"   📭 No integrations configured for this agent")
-                        
+
                 except Exception as agent_error:
                     print(f"   ❌ Error processing agent: {str(agent_error)}")
-            
+
             print(f"\n📊 Polling Summary:")
             print(f"   🛒 Total carts processed: {total_carts_processed}")
             print(f"   💰 Total recovery value: ${total_recovery_value:.2f}")
             print("=" * 50)
-                    
+
         except Exception as e:
             print(f"❌ Error in abandoned cart processing: {str(e)}")
 

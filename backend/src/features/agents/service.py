@@ -377,6 +377,29 @@ class AgentManagementService:
                     "is_configured": True,
                 }
 
+                # Extract integrations from configuration or integrations field
+                integrations_to_save = None
+                if config.get("integrationConfigs"):
+                    integrations_to_save = config["integrationConfigs"]
+                elif config.get("integrations"):
+                    integrations_to_save = config["integrations"]
+                elif config.get("configuration") and isinstance(
+                    config["configuration"], dict
+                ):
+                    # Check if configuration contains integration data
+                    conf = config["configuration"]
+                    if any(
+                        key in conf
+                        for key in [
+                            "shopify",
+                            "woocommerce",
+                            "magento",
+                            "ticimax",
+                            "custom_booking",
+                        ]
+                    ):
+                        integrations_to_save = conf
+
                 # Update configuration if provided
                 if config.get("custom_name"):
                     update_data["custom_name"] = config["custom_name"]
@@ -384,8 +407,24 @@ class AgentManagementService:
                     update_data["custom_prompt"] = config["custom_prompt"]
                 if config.get("selected_voice_id"):
                     update_data["selected_voice_id"] = config["selected_voice_id"]
-                if config.get("configuration"):
-                    update_data["configuration"] = config["configuration"]
+
+                # Store only integration references in configuration field (no sensitive data)
+                if integrations_to_save:
+                    integration_summary = {}
+                    for provider_slug, provider_config in integrations_to_save.items():
+                        integration_summary[provider_slug] = {
+                            "enabled": True,
+                            "provider_slug": provider_slug,
+                            "configured_fields_count": (
+                                len(provider_config.keys()) if provider_config else 0
+                            ),
+                            "last_updated": "now()",
+                            # Reference to find the actual credentials in integration_credentials table
+                            "configuration_reference": f"agent_{existing.data[0]['id']}_provider_{provider_slug}",
+                        }
+                    update_data["configuration"] = {"integrations": integration_summary}
+                else:
+                    update_data["configuration"] = {}
 
                 result = (
                     supabase.table("company_agents")
@@ -394,15 +433,58 @@ class AgentManagementService:
                     .execute()
                 )
 
-                # Save integration configurations if provided
-                if config.get("integrations"):
+                # Save integration configurations to proper tables
+                if integrations_to_save:
+                    print(
+                        f"🔗 Saving integrations during activation: {integrations_to_save}"
+                    )
                     await IntegrationService.save_agent_integrations(
-                        existing.data[0]["id"], config["integrations"]
+                        existing.data[0]["id"], integrations_to_save
                     )
 
                 return result.data[0] if result.data else {}
             else:
                 # Create new agent
+                # Extract integrations from configuration or integrations field
+                integrations_to_save = None
+                if config.get("integrationConfigs"):
+                    integrations_to_save = config["integrationConfigs"]
+                elif config.get("integrations"):
+                    integrations_to_save = config["integrations"]
+                elif config.get("configuration") and isinstance(
+                    config["configuration"], dict
+                ):
+                    # Check if configuration contains integration data
+                    conf = config["configuration"]
+                    if any(
+                        key in conf
+                        for key in [
+                            "shopify",
+                            "woocommerce",
+                            "magento",
+                            "ticimax",
+                            "custom_booking",
+                        ]
+                    ):
+                        integrations_to_save = conf
+
+                # Prepare configuration with integration references only (no sensitive data)
+                configuration_data = {}
+                if integrations_to_save:
+                    integration_summary = {}
+                    for provider_slug, provider_config in integrations_to_save.items():
+                        integration_summary[provider_slug] = {
+                            "enabled": True,
+                            "provider_slug": provider_slug,
+                            "configured_fields_count": (
+                                len(provider_config.keys()) if provider_config else 0
+                            ),
+                            "last_updated": "now()",
+                            # Reference to find the actual credentials - will be updated after insert
+                            "configuration_reference": f"pending_agent_creation",
+                        }
+                    configuration_data = {"integrations": integration_summary}
+
                 agent_data = {
                     "company_id": company_id,
                     "agent_template_id": agent_template_id,
@@ -412,18 +494,42 @@ class AgentManagementService:
                     "custom_name": config.get("custom_name"),
                     "custom_prompt": config.get("custom_prompt"),
                     "selected_voice_id": config.get("selected_voice_id"),
-                    "configuration": config.get("configuration", {}),
+                    "configuration": configuration_data,
                     "monthly_limit": config.get("monthly_limit"),
                     "daily_limit": config.get("daily_limit"),
                 }
 
                 result = supabase.table("company_agents").insert(agent_data).execute()
 
-                # Save integration configurations if provided
-                if config.get("integrations") and result.data:
-                    await IntegrationService.save_agent_integrations(
-                        result.data[0]["id"], config["integrations"]
+                # Save integration configurations to proper tables
+                if integrations_to_save and result.data:
+                    agent_id = result.data[0]["id"]
+                    print(
+                        f"🔗 Saving integrations during new agent creation: {integrations_to_save}"
                     )
+                    await IntegrationService.save_agent_integrations(
+                        agent_id, integrations_to_save
+                    )
+
+                    # Update configuration with correct references after agent creation
+                    if configuration_data.get("integrations"):
+                        updated_integration_summary = {}
+                        for provider_slug, summary in configuration_data[
+                            "integrations"
+                        ].items():
+                            summary["configuration_reference"] = (
+                                f"agent_{agent_id}_provider_{provider_slug}"
+                            )
+                            updated_integration_summary[provider_slug] = summary
+
+                        # Update the agent with correct references
+                        supabase.table("company_agents").update(
+                            {
+                                "configuration": {
+                                    "integrations": updated_integration_summary
+                                }
+                            }
+                        ).eq("id", agent_id).execute()
 
                 return result.data[0] if result.data else {}
 
@@ -496,6 +602,44 @@ class AgentManagementService:
             print(
                 f"🔄 Updating agent {agent_id} for company {company_id} with data: {update_data}"
             )
+
+            # Extract integrations from configuration if they exist
+            integrations_to_save = None
+            if update_data.get("configuration"):
+                # Check if configuration contains integration data
+                config = update_data["configuration"]
+                if isinstance(config, dict) and any(
+                    key in config
+                    for key in [
+                        "shopify",
+                        "woocommerce",
+                        "magento",
+                        "ticimax",
+                        "custom_booking",
+                    ]
+                ):
+                    integrations_to_save = config
+
+            # Also check for direct integrations field
+            if updates.get("integrations"):
+                integrations_to_save = updates["integrations"]
+
+            # Update configuration with integration references only (no sensitive data)
+            if integrations_to_save:
+                integration_summary = {}
+                for provider_slug, provider_config in integrations_to_save.items():
+                    integration_summary[provider_slug] = {
+                        "enabled": True,
+                        "provider_slug": provider_slug,
+                        "configured_fields_count": (
+                            len(provider_config.keys()) if provider_config else 0
+                        ),
+                        "last_updated": "now()",
+                        # Reference to find the actual credentials in integration_credentials table
+                        "configuration_reference": f"agent_{agent_id}_provider_{provider_slug}",
+                    }
+                update_data["configuration"] = {"integrations": integration_summary}
+
             if update_data:
                 result = (
                     supabase.table("company_agents")
@@ -505,10 +649,13 @@ class AgentManagementService:
                     .execute()
                 )
 
-                # Update integrations if provided
-                if updates.get("integrations"):
+                # Save integrations to proper tables
+                if integrations_to_save:
+                    print(
+                        f"🔗 Saving integrations to proper tables: {integrations_to_save}"
+                    )
                     await IntegrationService.save_agent_integrations(
-                        agent_id, updates["integrations"]
+                        agent_id, integrations_to_save
                     )
 
                 return result.data[0] if result.data else {}
@@ -568,7 +715,10 @@ class IntegrationService:
 
             for provider_slug, config in integrations.items():
                 if not config or not isinstance(config, dict):
+                    print(f"⚠️ Skipping invalid config for {provider_slug}: {config}")
                     continue
+
+                print(f"🔍 Processing integration for provider: {provider_slug}")
 
                 # Get provider info
                 provider_result = (
@@ -579,9 +729,13 @@ class IntegrationService:
                 )
 
                 if not provider_result.data:
+                    print(f"❌ Provider not found for slug: {provider_slug}")
                     continue
 
+                print(f"✅ Found provider: {provider_result.data[0]}")
+
                 provider_id = provider_result.data[0]["id"]
+                print(f"🆔 Using provider_id: {provider_id}")
 
                 # Create or update company integration configuration
                 company_integration_result = (
@@ -595,6 +749,7 @@ class IntegrationService:
                 if company_integration_result.data:
                     # Update existing configuration
                     configuration_id = company_integration_result.data[0]["id"]
+                    print(f"🔄 Using existing configuration: {configuration_id}")
                 else:
                     # Create new configuration
                     new_config = {
@@ -605,20 +760,31 @@ class IntegrationService:
                         "is_default": True,
                     }
 
+                    print(f"🆕 Creating new configuration: {new_config}")
+
                     create_result = (
                         supabase.table("company_integration_configurations")
                         .insert(new_config)
                         .execute()
                     )
 
-                    configuration_id = create_result.data[0]["id"]
+                    if create_result.data:
+                        configuration_id = create_result.data[0]["id"]
+                        print(f"✅ Created new configuration: {configuration_id}")
+                    else:
+                        print(f"❌ Failed to create configuration: {create_result}")
+                        continue
 
                 # Save encrypted credentials
+                print(f"💾 Saving credentials for config {configuration_id}: {config}")
                 await IntegrationService._save_encrypted_credentials(
                     configuration_id, config
                 )
 
                 # Link agent to integration
+                print(
+                    f"🔗 Linking agent {agent_id} to configuration {configuration_id}"
+                )
                 await IntegrationService._link_agent_to_integration(
                     agent_id, configuration_id
                 )
@@ -633,10 +799,15 @@ class IntegrationService:
     ):
         """Save encrypted credentials for an integration configuration"""
         try:
+            print(f"🗑️ Deleting existing credentials for config: {configuration_id}")
             # Delete existing credentials
-            supabase.table("integration_credentials").delete().eq(
-                "configuration_id", configuration_id
-            ).execute()
+            delete_result = (
+                supabase.table("integration_credentials")
+                .delete()
+                .eq("configuration_id", configuration_id)
+                .execute()
+            )
+            print(f"🗑️ Delete result: {delete_result}")
 
             # Save new credentials
             for key, value in config.items():
@@ -647,18 +818,28 @@ class IntegrationService:
                         "encrypted_value": value,  # In production, this should be encrypted
                     }
 
-                    supabase.table("integration_credentials").insert(
-                        credential_data
-                    ).execute()
+                    print(f"💾 Saving credential: {key} for config {configuration_id}")
+                    insert_result = (
+                        supabase.table("integration_credentials")
+                        .insert(credential_data)
+                        .execute()
+                    )
+                    print(f"💾 Insert result: {insert_result}")
+                else:
+                    print(f"⚠️ Skipping invalid credential: {key} = {value}")
 
         except Exception as e:
             logger.error(f"Error saving encrypted credentials: {e}")
+            print(f"❌ Error in _save_encrypted_credentials: {e}")
             raise
 
     @staticmethod
     async def _link_agent_to_integration(agent_id: str, configuration_id: str):
         """Link agent to integration configuration"""
         try:
+            print(
+                f"🔍 Checking existing link for agent {agent_id} and config {configuration_id}"
+            )
             # Check if link already exists
             existing_link = (
                 supabase.table("agent_integration_links")
@@ -667,6 +848,8 @@ class IntegrationService:
                 .eq("configuration_id", configuration_id)
                 .execute()
             )
+
+            print(f"🔍 Existing link result: {existing_link}")
 
             if not existing_link.data:
                 # Create new link
@@ -677,15 +860,27 @@ class IntegrationService:
                     "permissions": {},
                 }
 
-                supabase.table("agent_integration_links").insert(link_data).execute()
+                print(f"🆕 Creating new link: {link_data}")
+                link_result = (
+                    supabase.table("agent_integration_links")
+                    .insert(link_data)
+                    .execute()
+                )
+                print(f"✅ Link created: {link_result}")
             else:
                 # Update existing link to enabled
-                supabase.table("agent_integration_links").update(
-                    {"is_enabled": True}
-                ).eq("id", existing_link.data[0]["id"]).execute()
+                print(f"🔄 Updating existing link to enabled")
+                update_result = (
+                    supabase.table("agent_integration_links")
+                    .update({"is_enabled": True})
+                    .eq("id", existing_link.data[0]["id"])
+                    .execute()
+                )
+                print(f"✅ Link updated: {update_result}")
 
         except Exception as e:
             logger.error(f"Error linking agent to integration: {e}")
+            print(f"❌ Error in _link_agent_to_integration: {e}")
             raise
 
     @staticmethod

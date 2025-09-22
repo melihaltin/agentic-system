@@ -204,9 +204,21 @@ class AgentIntegrationPoller:
                                     )
 
                                     # Create enhanced payload
-                                    payload = await self.abandoned_cart_service.create_abandoned_cart_payload(
-                                        mock_data
+                                    payload_result = await self.abandoned_cart_service.create_abandoned_cart_payload(
+                                        agent["agent_id"]
                                     )
+
+                                    if not payload_result.get("success"):
+                                        print(
+                                            f"      ❌ Failed to create payload: {payload_result.get('message')}"
+                                        )
+                                        continue
+
+                                    payload = payload_result["payload"]
+
+                                    print(
+                                        f"      📨 Payload: {json.dumps(payload, indent=2)}"
+                                    )  # Debug print
 
                                     # Send to external API (using HTTP not HTTPS for localhost)
                                     api_response = await self.abandoned_cart_service.send_to_external_api(
@@ -218,6 +230,13 @@ class AgentIntegrationPoller:
                                         and api_response.get("status_code") == 200
                                     ):
                                         print(f"      ✅ Successfully sent to API")
+                                        response_data = api_response.get(
+                                            "response_data", {}
+                                        )
+                                        if response_data.get("thread_id"):
+                                            print(
+                                                f"      🧵 Thread ID: {response_data['thread_id']}"
+                                            )
                                         total_carts_processed += len(carts)
                                         total_recovery_value += recovery_value
                                     else:

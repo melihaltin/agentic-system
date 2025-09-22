@@ -40,6 +40,7 @@ class ProcessedAgent:
     tts_provider: str
     language: str
     voice_id: Optional[str] = None
+    selected_voice_id: Optional[str] = None
     voice_settings: Dict[str, Any] = None
     personality: Optional[str] = None
 
@@ -90,16 +91,29 @@ class PayloadProcessor:
             print(
                 f"🔄 Processing payload of type: {self._detect_payload_type(raw_payload)}"
             )
+            print(f"🔍 DEBUG: Raw payload keys: {list(raw_payload.keys())}")
 
             # Validate basic structure
             self._validate_payload(raw_payload)
 
             # Extract components
+            print("📞 DEBUG: Extracting customer...")
             customer = self._extract_customer(raw_payload)
+            print(f"✅ Customer: {customer.name} ({customer.phone})")
+
+            print("🏢 DEBUG: Extracting business...")
             business = self._extract_business(raw_payload)
+
+            print("🤖 DEBUG: Extracting agent...")
             agent = self._extract_agent(raw_payload)
+
+            print("🛒 DEBUG: Extracting cart data...")
             cart_data = self._extract_cart_data(raw_payload)
+
+            print("📊 DEBUG: Extracting platform data...")
             platform_data = self._extract_platform_data(raw_payload)
+
+            print("📋 DEBUG: Extracting metadata...")
             metadata = self._extract_metadata(raw_payload)
 
             processed = ProcessedPayload(
@@ -186,7 +200,7 @@ class PayloadProcessor:
                 cart_items=cart.get("items", []),
             )
 
-        # Try platform data
+        # Try platform data (legacy format)
         platform_data = payload.get("platform_data", {})
         for platform, data in platform_data.items():
             if "abandoned_carts" in data and data["abandoned_carts"]:
@@ -198,6 +212,22 @@ class PayloadProcessor:
                     email=cart.get("customer_email"),
                     cart_value=cart.get("total_value"),
                     cart_items=cart.get("items", []),
+                )
+
+        # Try platforms data (backend format)
+        platforms_data = payload.get("platforms", {})
+        for platform, data in platforms_data.items():
+            if "abandoned_carts" in data and data["abandoned_carts"]:
+                cart = data["abandoned_carts"][0]
+                customer = cart.get("customer", {})
+                return ProcessedCustomer(
+                    phone=self._normalize_phone(customer.get("phone")),
+                    name=f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip()
+                    or "Customer",
+                    customer_type="abandoned_cart",
+                    email=customer.get("email"),
+                    cart_value=cart.get("total_value"),
+                    cart_items=cart.get("products", []),
                 )
 
         # Try legacy format
@@ -222,6 +252,17 @@ class PayloadProcessor:
                 website=business.get("website", ""),
                 industry=business.get("industry"),
                 phone=business.get("phone"),
+            )
+
+        # Try company object (backend format)
+        if "company" in payload:
+            company = payload["company"]
+            return ProcessedBusiness(
+                name=company.get("name", "Your Business"),
+                description=company.get("business_category", ""),
+                website=company.get("website", ""),
+                industry=company.get("business_category"),
+                phone=company.get("phone_number"),
             )
 
         # Try business_info (legacy)
@@ -253,16 +294,40 @@ class PayloadProcessor:
         # Try direct agent object
         if "agent" in payload:
             agent = payload["agent"]
-            return ProcessedAgent(
-                name=agent.get("name", "AI Assistant"),
-                tts_provider=agent.get("tts_provider", "elevenlabs"),
-                language=agent.get("language", "en-US"),
-                voice_id=agent.get("voice_id"),
-                voice_settings=agent.get("voice_settings", {}),
-                personality=agent.get("personality"),
+
+            # Get voice configuration from multiple sources
+            voice_id = agent.get("selected_voice_id") or agent.get("voice_id")
+            selected_voice_id = agent.get("selected_voice_id")
+            tts_provider = agent.get("tts_provider", "elevenlabs")
+            language = agent.get("language", "en-US")
+
+            # Check voice_config section for additional voice settings
+            voice_config = payload.get("voice_config", {})
+            if voice_config:
+                # Use voice_id_external from voice_config if available
+                if voice_config.get("voice_id_external") and not voice_id:
+                    voice_id = voice_config.get("voice_id_external")
+                    selected_voice_id = voice_config.get("voice_id_external")
+
+                # Override provider and language if specified in voice_config
+                if voice_config.get("provider"):
+                    tts_provider = voice_config.get("provider")
+                if voice_config.get("language"):
+                    language = voice_config.get("language")
+
+            print(
+                f"🎤 DEBUG: Voice settings - voice_id: {voice_id}, provider: {tts_provider}, language: {language}"
             )
 
-        # Try legacy format
+            return ProcessedAgent(
+                name=agent.get("name", "AI Assistant"),
+                tts_provider=tts_provider,
+                language=language,
+                voice_id=voice_id,
+                selected_voice_id=selected_voice_id,
+                voice_settings=agent.get("voice_settings", {}),
+                personality=agent.get("personality"),
+            )  # Try legacy format
         return ProcessedAgent(
             name=payload.get("agent_name", "AI Assistant"),
             tts_provider=payload.get("tts_provider", "elevenlabs"),
@@ -386,6 +451,7 @@ class PayloadProcessor:
             "tts_provider": processed.agent.tts_provider,
             "language": processed.agent.language,
             "voice_id": processed.agent.voice_id,
+            "selected_voice_id": processed.agent.selected_voice_id,
             "voice_settings": processed.agent.voice_settings or {},
             "cart_data": processed.cart_data,
             "platform_data": processed.platform_data,

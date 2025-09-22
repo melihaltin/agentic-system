@@ -70,6 +70,7 @@ class ThreadManager:
     def process_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process incoming payload and start a new thread
+        Updated to handle the new backend payload structure
 
         Args:
             payload: Complete abandoned cart payload from backend
@@ -80,24 +81,63 @@ class ThreadManager:
         try:
             print(f"📦 Processing new payload...")
 
-            # Process payload through PayloadProcessor
-            try:
-                processed_payload = self.payload_processor.process(payload)
-                print(f"✅ Payload processed successfully")
-
-                # Validate processed payload
-                warnings = self.payload_processor.validate_processed_payload(
-                    processed_payload
-                )
-                if warnings:
-                    print(f"⚠️ Payload warnings: {'; '.join(warnings)}")
-
-            except ValueError as e:
+            # Extract and validate customer data
+            customer_data = payload.get("customer", {})
+            if not customer_data:
                 return {
                     "success": False,
-                    "error": f"Invalid payload: {str(e)}",
+                    "error": "Missing customer data in payload",
                     "thread_id": None,
                 }
+
+            customer_phone = customer_data.get("phone", "").strip()
+            if not customer_phone:
+                return {
+                    "success": False,
+                    "error": "Customer phone number is required",
+                    "thread_id": None,
+                }
+
+            customer_name = (
+                customer_data.get("name")
+                or f"{customer_data.get('first_name', '')} {customer_data.get('last_name', '')}".strip()
+            )
+            if not customer_name:
+                customer_name = "Valued Customer"
+
+            # Validate business data
+            business_data = payload.get("business", {})
+            if not business_data.get("name"):
+                return {
+                    "success": False,
+                    "error": "Business name is required in payload",
+                    "thread_id": None,
+                }
+
+            # Validate agent data
+            agent_data = payload.get("agent", {})
+            if not agent_data:
+                return {
+                    "success": False,
+                    "error": "Agent configuration is required in payload",
+                    "thread_id": None,
+                }
+
+            # Validate cart data
+            cart_data = payload.get("abandoned_cart", {})
+            if not cart_data or not cart_data.get("products"):
+                return {
+                    "success": False,
+                    "error": "Abandoned cart data with products is required",
+                    "thread_id": None,
+                }
+
+            print(f"✅ Payload validation successful")
+            print(f"👤 Customer: {customer_name} ({customer_phone})")
+            print(f"🏢 Business: {business_data.get('name')}")
+            print(
+                f"🛒 Cart Value: {cart_data.get('currency', 'USD')} {cart_data.get('total_value', 0)}"
+            )
 
             # Check concurrent thread limit
             if len(self.active_threads) >= self.max_concurrent_threads:
@@ -111,21 +151,24 @@ class ThreadManager:
             thread_id = f"thread_{uuid.uuid4().hex[:8]}"
 
             # Create voice service configuration
-            voice_service = self._create_voice_service_from_processed(processed_payload)
+            voice_service = self._create_voice_service_from_payload(payload)
+
+            # Create agent configuration for voice agent
+            agent_config = self._create_agent_config_from_payload(payload)
 
             # Create thread context
             thread_context = ThreadContext(
                 thread_id=thread_id,
-                customer_phone=processed_payload.customer.phone,
-                customer_name=processed_payload.customer.name,
-                customer_type=processed_payload.customer.customer_type,
-                agent_config=self.payload_processor.to_voice_agent_config(
-                    processed_payload
-                ),
+                customer_phone=customer_phone,
+                customer_name=customer_name,
+                customer_type=customer_data.get("customer_type", "returning"),
+                agent_config=agent_config,
                 business_info={
-                    "name": processed_payload.business.name,
-                    "description": processed_payload.business.description,
-                    "website": processed_payload.business.website,
+                    "name": business_data.get("name"),
+                    "description": business_data.get("description", ""),
+                    "website": business_data.get("website", ""),
+                    "phone": business_data.get("phone", ""),
+                    "timezone": business_data.get("timezone", "UTC"),
                 },
                 voice_service=voice_service,
             )
@@ -135,20 +178,19 @@ class ThreadManager:
                 self.active_threads[thread_id] = thread_context
 
             print(
-                f"🆕 Created thread {thread_id} for {processed_payload.customer.name} ({processed_payload.customer.phone})"
+                f"🆕 Created thread {thread_id} for {customer_name} ({customer_phone})"
             )
 
             # Start the thread
-            success = self._start_voice_agent_thread(thread_id, processed_payload)
+            success = self._start_voice_agent_thread(thread_id, payload)
 
             if success:
                 return {
                     "success": True,
                     "thread_id": thread_id,
-                    "customer_phone": processed_payload.customer.phone,
-                    "customer_name": processed_payload.customer.name,
-                    "message": f"Voice agent thread started for {processed_payload.customer.name}",
-                    "warnings": warnings if warnings else None,
+                    "customer_phone": customer_phone,
+                    "customer_name": customer_name,
+                    "message": f"Voice agent thread started for {customer_name}",
                 }
             else:
                 # Clean up failed thread
@@ -164,16 +206,48 @@ class ThreadManager:
 
         except Exception as e:
             print(f"❌ Error processing payload: {str(e)}")
+            import traceback
+
+            traceback.print_exc()
             return {
                 "success": False,
                 "error": f"Payload processing failed: {str(e)}",
                 "thread_id": None,
             }
 
+    def _create_voice_service_from_payload(
+        self, payload: Dict[str, Any]
+    ) -> VoiceService:
+        """Create voice service based on payload configuration"""
+        try:
+            voice_config = payload.get("voice_config", {})
+            agent_data = payload.get("agent", {})
+
+            tts_provider = (
+                voice_config.get("provider")
+                or agent_data.get("tts_provider", "elevenlabs")
+            ).lower()
+
+            # Create appropriate voice service
+            if tts_provider == "elevenlabs":
+                import os
+
+                if os.getenv("ELEVENLABS_API_KEY"):
+                    return VoiceConfig.create_elevenlabs_config()
+                else:
+                    print("⚠️ ElevenLabs API key not found, falling back to Twilio")
+                    return VoiceConfig.create_twilio_config()
+            else:
+                return VoiceConfig.create_twilio_config()
+
+        except Exception as e:
+            print(f"⚠️ Error creating voice service: {str(e)}, using default Twilio")
+            return VoiceConfig.create_twilio_config()
+
     def _create_voice_service_from_processed(
         self, processed_payload: ProcessedPayload
     ) -> VoiceService:
-        """Create voice service based on processed payload configuration"""
+        """Create voice service based on processed payload configuration (legacy support)"""
         try:
             tts_provider = processed_payload.agent.tts_provider.lower()
 
@@ -216,14 +290,80 @@ class ThreadManager:
             print(f"⚠️ Error creating voice service: {str(e)}, using default Twilio")
             return VoiceConfig.create_twilio_config()
 
-    def _start_voice_agent_thread(self, thread_id: str, payload) -> bool:
-        """Start a new voice agent thread"""
+    def _create_agent_config_from_payload(
+        self, payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Create agent configuration from payload"""
+        try:
+            agent_data = payload.get("agent", {})
+            business_data = payload.get("business", {})
+            customer_data = payload.get("customer", {})
+            cart_data = payload.get("abandoned_cart", {})
+            voice_config = payload.get("voice_config", {})
+
+            # Create comprehensive agent config
+            agent_config = {
+                # Basic agent info
+                "agent_id": agent_data.get("id"),
+                "agent_name": agent_data.get("name", "AI Assistant"),
+                "agent_type": agent_data.get("type", "abandoned_cart_recovery"),
+                # Voice configuration
+                "tts_provider": agent_data.get("tts_provider", "elevenlabs"),
+                "voice_id": voice_config.get("voice_id") or agent_data.get("voice_id"),
+                "language": voice_config.get("language", "en-US"),
+                # Business context
+                "business_name": business_data.get("name"),
+                "business_website": business_data.get("website"),
+                "business_phone": business_data.get("phone"),
+                # Customer context
+                "customer_name": customer_data.get("name")
+                or f"{customer_data.get('first_name', '')} {customer_data.get('last_name', '')}".strip(),
+                "customer_phone": customer_data.get("phone"),
+                "customer_email": customer_data.get("email"),
+                "customer_type": customer_data.get("customer_type", "returning"),
+                # Cart context
+                "cart_id": cart_data.get("id"),
+                "cart_total": cart_data.get("total_value", 0),
+                "cart_currency": cart_data.get("currency", "USD"),
+                "cart_url": cart_data.get("cart_url"),
+                "cart_products": cart_data.get("products", []),
+                "abandoned_at": cart_data.get("abandoned_at"),
+                "recovery_attempts": cart_data.get("recovery_attempts", 0),
+                # Conversation settings
+                "personality": agent_data.get("personality", "friendly and helpful"),
+                "conversation_style": agent_data.get(
+                    "conversation_style", "professional yet casual"
+                ),
+                "max_conversation_length": 300,  # seconds
+                # System settings
+                "timezone": business_data.get("timezone", "UTC"),
+                "template_slug": agent_data.get(
+                    "template_slug", "ecommerce-abandoned-cart"
+                ),
+            }
+
+            return agent_config
+
+        except Exception as e:
+            print(f"⚠️ Error creating agent config: {str(e)}")
+            # Return minimal config
+            return {
+                "agent_name": "AI Assistant",
+                "tts_provider": "elevenlabs",
+                "customer_name": "Valued Customer",
+                "business_name": "Our Store",
+            }
+
+    def _start_voice_agent_thread(
+        self, thread_id: str, payload: Dict[str, Any]
+    ) -> bool:
+        """Start a new voice agent thread with updated payload structure"""
         try:
             thread_context = self.active_threads.get(thread_id)
             if not thread_context:
                 return False
 
-            # Use the processed agent config from thread context
+            # Use the agent config from thread context
             agent_config = thread_context.agent_config
 
             # Create agent instance

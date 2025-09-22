@@ -378,8 +378,18 @@ Happy shopping! 🛍️"""
         # Check if using ElevenLabs or custom TTS
         if isinstance(self.voice_service.tts_provider, ElevenLabsTTS):
             try:
-                # Generate audio URL with ElevenLabs
-                audio_url = self.voice_service.text_to_speech(text)
+                # Generate audio URL with ElevenLabs (including dynamic voice_id)
+                voice_kwargs = {}
+                if self.call_config and "selected_voice_id" in self.call_config:
+                    voice_kwargs["voice_id"] = self.call_config["selected_voice_id"]
+                    print(
+                        f"🎤 Using dynamic voice: {self.call_config['selected_voice_id']}"
+                    )
+                elif self.call_config and "voice_id" in self.call_config:
+                    voice_kwargs["voice_id"] = self.call_config["voice_id"]
+                    print(f"🎤 Using configured voice: {self.call_config['voice_id']}")
+
+                audio_url = self.voice_service.text_to_speech(text, **voice_kwargs)
                 response.play(audio_url)
             except Exception as e:
                 print(f"❌ ElevenLabs error, falling back to Twilio TTS: {e}")

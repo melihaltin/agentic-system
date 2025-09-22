@@ -231,14 +231,16 @@ export const useAgents = (businessCategory?: string) => {
               templateIcon: templateData.icon,
               templateAgentType: templateData.agent_type,
               templateRequiredIntegrations: templateData.required_integrations,
-              ...agent.template_info && { originalTemplateInfo: agent.template_info },
+              ...(agent.template_info && {
+                originalTemplateInfo: agent.template_info,
+              }),
             }
           : agent.template_info || undefined,
       };
     });
   };
 
-  const activateAgent = async (agentTemplateId: string, config?: any) => {
+  const activateAgent = async (agentTemplateId: string, config: any = {}) => {
     const companyId = await getCompanyId();
     if (!companyId) {
       setError("Company ID not found");
@@ -246,23 +248,24 @@ export const useAgents = (businessCategory?: string) => {
     }
 
     try {
-      // Template bilgilerini al
       const template = availableTemplates.find((t) => t.id === agentTemplateId);
 
-      // Config'e template'den gelen bilgileri ekle
-      const enhancedConfig = {
+      // Prepare configuration with integration data
+      const activationConfig = {
         custom_name: config?.custom_name || template?.name,
         custom_prompt: config?.custom_prompt || template?.default_prompt,
-        ...config,
+        selected_voice_id: config?.selected_voice_id,
+        configuration: config?.configuration || {},
+        integrations: config?.integrationConfigs || {},
       };
 
       const activatedAgent = await AgentService.activateAgent(
         companyId,
         agentTemplateId,
-        enhancedConfig
+        activationConfig
       );
+
       if (activatedAgent) {
-        // Reload company agents to get updated list
         await loadCompanyAgents();
       }
       return activatedAgent;
@@ -279,33 +282,24 @@ export const useAgents = (businessCategory?: string) => {
   ) => {
     const companyId = await getCompanyId();
 
-    console.log("Company ID:", companyId);
     if (!companyId) {
       setError("Company ID not found");
       return;
     }
 
     try {
-      console.log(
-        "Toggling agent:",
-        agentId,
-        "Active:",
-        isActive,
-        "Template ID:",
-        agentTemplateId
-      );
-
       // If this is a template (agentTemplateId provided) and we want to activate it
       if (agentTemplateId && isActive) {
-        console.log("This is a template, activating first...");
         const activatedAgent = await AgentService.activateAgent(
           companyId,
           agentTemplateId,
-          { custom_name: agents.find((a) => a.id === agentId)?.name }
+          {
+            custom_name: agents.find((a) => a.id === agentId)?.name,
+            configuration: {},
+          }
         );
 
         if (activatedAgent) {
-          console.log("Template activated successfully:", activatedAgent);
           // Reload all agents to get the updated list
           await loadCompanyAgents();
           return;
@@ -335,15 +329,11 @@ export const useAgents = (businessCategory?: string) => {
             agent.id === agentId ? { ...agent, isActive } : agent
           )
         );
-
-        console.log("Agent toggled successfully:", updatedAgent);
       } else {
         throw new Error("No response from server");
       }
     } catch (err) {
-      console.error("Toggle agent error:", err);
       setError(err instanceof Error ? err.message : "Failed to update agent");
-
       // Reload data to ensure consistency
       await loadCompanyAgents();
     }

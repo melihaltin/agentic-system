@@ -39,29 +39,32 @@ const MyAgentsPage: React.FC = () => {
   };
 
   const handleSaveAgentConfig = async (updatedAgent: AgentType) => {
-    // Eğer agent daha önce aktif değilse, önce activate et
-    if (!selectedAgent?.isActive && selectedAgent?.isCompanyAgent === false) {
-      const templateId = selectedAgent?.agentTemplateId || selectedAgent?.id;
+    try {
+      if (!selectedAgent?.isActive && selectedAgent?.isCompanyAgent === false) {
+        // Activate new agent with configuration
+        const templateId = selectedAgent?.agentTemplateId || selectedAgent?.id;
 
-      // Agent'ı activate et ve konfigürasyon verilerini geç
-      const config = {
-        custom_name: updatedAgent.settings.customName,
-        custom_prompt: updatedAgent.settings.customPrompt,
-        configuration: updatedAgent.settings.integrationConfigs,
-        // Voice agent ise ses ayarlarını da ekle
-        ...((updatedAgent.settings as any).voice && {
-          selected_voice_id: (updatedAgent.settings as any).voice.id,
-        }),
-      };
+        const config = {
+          custom_name: updatedAgent.settings.customName,
+          custom_prompt: updatedAgent.settings.customPrompt,
+          integrationConfigs: updatedAgent.settings.integrationConfigs || {},
+          configuration: {},
+          ...((updatedAgent.settings as any).voice && {
+            selected_voice_id: (updatedAgent.settings as any).voice.id,
+          }),
+        };
 
-      await activateAgent(templateId, config);
-    } else {
-      // Zaten aktif agent için sadece güncelle
-      await updateAgent(updatedAgent);
+        await activateAgent(templateId, config);
+      } else {
+        // Update existing active agent
+        await updateAgent(updatedAgent);
+      }
+    } catch (error) {
+      console.error("Error saving agent config:", error);
+    } finally {
+      setIsModalOpen(false);
+      setSelectedAgent(null);
     }
-
-    setIsModalOpen(false);
-    setSelectedAgent(null);
   };
 
   const handleModalClose = () => {
@@ -71,8 +74,6 @@ const MyAgentsPage: React.FC = () => {
 
   // Ajanları doğrudan kullan, filtrelemeye gerek yok
   const displayedAgents = agents;
-
-  console.log("321321321:", agents);
 
   if (isLoading) {
     return (

@@ -228,12 +228,22 @@ class ThreadManager:
                 or agent_data.get("tts_provider", "elevenlabs")
             ).lower()
 
+            # Extract voice_id from payload
+            voice_id = (
+                voice_config.get("voice_id_external")
+                or voice_config.get("voice_id")
+                or agent_data.get("selected_voice_id")
+                or agent_data.get("voice_id")
+            )
+
+            print(f"🎤 Extracted voice_id from payload: {voice_id}")
+
             # Create appropriate voice service
             if tts_provider == "elevenlabs":
                 import os
 
                 if os.getenv("ELEVENLABS_API_KEY"):
-                    return VoiceConfig.create_elevenlabs_config()
+                    return VoiceConfig.create_elevenlabs_config(voice_id=voice_id)
                 else:
                     print("⚠️ ElevenLabs API key not found, falling back to Twilio")
                     return VoiceConfig.create_twilio_config()
@@ -250,13 +260,16 @@ class ThreadManager:
         """Create voice service based on processed payload configuration (legacy support)"""
         try:
             tts_provider = processed_payload.agent.tts_provider.lower()
+            voice_id = processed_payload.agent.voice_id
+
+            print(f"🎤 Extracted voice_id from processed payload: {voice_id}")
 
             # Create appropriate voice service
             if tts_provider == "elevenlabs":
                 import os
 
                 if os.getenv("ELEVENLABS_API_KEY"):
-                    return VoiceConfig.create_elevenlabs_config()
+                    return VoiceConfig.create_elevenlabs_config(voice_id=voice_id)
                 else:
                     print("⚠️ ElevenLabs API key not found, falling back to Twilio")
                     return VoiceConfig.create_twilio_config()
@@ -270,16 +283,21 @@ class ThreadManager:
     def _create_voice_service(self, payload: Dict[str, Any]) -> VoiceService:
         """Create voice service based on payload configuration (legacy)"""
         try:
-            # Get TTS provider from payload
+            # Get TTS provider and voice_id from payload
             agent_config = payload.get("agent", {})
             tts_provider = agent_config.get("tts_provider", "elevenlabs")
+            voice_id = agent_config.get("selected_voice_id") or agent_config.get(
+                "voice_id"
+            )
+
+            print(f"🎤 Extracted voice_id from legacy payload: {voice_id}")
 
             # Create appropriate voice service
             if tts_provider.lower() == "elevenlabs":
                 import os
 
                 if os.getenv("ELEVENLABS_API_KEY"):
-                    return VoiceConfig.create_elevenlabs_config()
+                    return VoiceConfig.create_elevenlabs_config(voice_id=voice_id)
                 else:
                     print("⚠️ ElevenLabs API key not found, falling back to Twilio")
                     return VoiceConfig.create_twilio_config()
@@ -309,7 +327,12 @@ class ThreadManager:
                 "agent_type": agent_data.get("type", "abandoned_cart_recovery"),
                 # Voice configuration
                 "tts_provider": agent_data.get("tts_provider", "elevenlabs"),
-                "voice_id": voice_config.get("voice_id") or agent_data.get("voice_id"),
+                "voice_id": (
+                    voice_config.get("voice_id_external")
+                    or voice_config.get("voice_id")
+                    or agent_data.get("selected_voice_id")
+                    or agent_data.get("voice_id")
+                ),
                 "language": voice_config.get("language", "en-US"),
                 # Business context
                 "business_name": business_data.get("name"),

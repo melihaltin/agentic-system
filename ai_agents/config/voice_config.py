@@ -16,11 +16,16 @@ class VoiceConfig:
     """Voice service configuration"""
 
     @staticmethod
-    def create_elevenlabs_config() -> VoiceService:
-        """Create ElevenLabs configuration"""
+    def create_elevenlabs_config(voice_id: str = None) -> VoiceService:
+        """Create ElevenLabs configuration with optional custom voice_id"""
+        # Use provided voice_id or fall back to environment variable
+        final_voice_id = voice_id or os.getenv(
+            "ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"
+        )
+
         tts = ElevenLabsTTS(
             api_key=os.getenv("ELEVENLABS_API_KEY"),
-            voice_id=os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"),
+            voice_id=final_voice_id,
         )
 
         audio_storage = LocalAudioStorage(

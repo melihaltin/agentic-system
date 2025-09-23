@@ -120,7 +120,17 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
 
         if isinstance(current_voice_service.tts_provider, ElevenLabsTTS):
             try:
-                audio_url = current_voice_service.text_to_speech(welcome_text)
+                # Pass voice_id from thread context if available
+                tts_kwargs = {}
+                if thread_context and thread_context.agent_config:
+                    voice_id = thread_context.agent_config.get("voice_id")
+                    if voice_id:
+                        tts_kwargs["voice_id"] = voice_id
+                        print(f"🎤 Using voice_id from thread context: {voice_id}")
+
+                audio_url = current_voice_service.text_to_speech(
+                    welcome_text, **tts_kwargs
+                )
                 gather.play(audio_url)
             except Exception as e:
                 print(f"❌ ElevenLabs error, using Twilio TTS: {e}")
@@ -209,8 +219,16 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
             # Generate voice response using the configured TTS
             if isinstance(current_voice_service.tts_provider, ElevenLabsTTS):
                 try:
+                    # Pass voice_id from thread context if available
+                    tts_kwargs = {}
+                    if thread_context and thread_context.agent_config:
+                        voice_id = thread_context.agent_config.get("voice_id")
+                        if voice_id:
+                            tts_kwargs["voice_id"] = voice_id
+                            print(f"🎤 Using voice_id from thread context: {voice_id}")
+
                     audio_url = current_voice_service.text_to_speech(
-                        agent_response_text
+                        agent_response_text, **tts_kwargs
                     )
                     gather.play(audio_url)
                 except Exception as e:

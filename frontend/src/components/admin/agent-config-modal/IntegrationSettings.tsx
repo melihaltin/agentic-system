@@ -44,21 +44,53 @@ export const IntegrationSettings = ({
   ); // Debug log
 
   // Get existing integrations from agent settings
-  const existingIntegrations = agent.settings.integrationConfigs || {};
+  // Backend sends data in format: { integrations: { shopify: {...}, woocommerce: {...} } }
+  const existingIntegrations =
+    agent.settings.integrationConfigs ||
+    (agent.settings as any).integrations ||
+    {};
 
   // State for managing multiple integrations
   const [integrations, setIntegrations] = useState<IntegrationConfig[]>(() => {
-    return Object.keys(existingIntegrations)
+    console.log(
+      "Existing integrations from agent settings:",
+      existingIntegrations
+    ); // Debug log
+
+    // Handle nested integrations structure from backend
+    const integrationsData =
+      existingIntegrations.integrations || existingIntegrations;
+
+    return Object.keys(integrationsData)
       .filter(
         (key) =>
           key &&
-          existingIntegrations[key] &&
-          Object.keys(existingIntegrations[key]).length > 0
+          integrationsData[key] &&
+          typeof integrationsData[key] === "object" &&
+          // Filter out nested 'integrations' key to avoid recursion
+          key !== "integrations"
       )
-      .map((platform) => ({
-        platform,
-        config: existingIntegrations[platform] || {},
-      }));
+      .map((platform) => {
+        const platformData = integrationsData[platform];
+
+        // If backend format, extract actual config from the structure
+        if (
+          platformData.configuration_reference ||
+          platformData.enabled !== undefined
+        ) {
+          // This is backend format - create empty config for editing
+          return {
+            platform,
+            config: {}, // Will be populated when editing
+          };
+        }
+
+        // This is frontend format - use as is
+        return {
+          platform,
+          config: platformData || {},
+        };
+      });
   });
 
   const [editingIntegration, setEditingIntegration] = useState<string | null>(
@@ -81,15 +113,22 @@ export const IntegrationSettings = ({
       setEditingIntegration(null);
     }
 
-    // Also update the agent settings to remove this integration
-    const updatedConfigs = { ...existingIntegrations };
+    // Handle both frontend and backend formats
+    const currentData =
+      existingIntegrations.integrations || existingIntegrations;
+    const updatedConfigs = { ...currentData };
     delete updatedConfigs[platformId];
+
+    // Maintain structure based on existing format
+    const finalUpdate = existingIntegrations.integrations
+      ? { integrations: updatedConfigs }
+      : updatedConfigs;
 
     // Trigger onChange to update the parent component
     onChange({
       target: {
         name: "integrationConfigs",
-        value: updatedConfigs,
+        value: finalUpdate,
         type: "object",
       },
     } as any);
@@ -105,18 +144,25 @@ export const IntegrationSettings = ({
         if (int.platform === platformId) {
           const updatedConfig = { ...int.config, [field]: value };
 
-          // Also update the agent settings
-          const updatedConfigs = {
-            ...existingIntegrations,
+          // Handle both frontend and backend formats
+          const currentData =
+            existingIntegrations.integrations || existingIntegrations;
+          const updatedData = {
+            ...currentData,
             [platformId]: updatedConfig,
           };
+
+          // Maintain structure based on existing format
+          const finalUpdate = existingIntegrations.integrations
+            ? { integrations: updatedData }
+            : updatedData;
 
           // Trigger onChange to update the parent component
           setTimeout(() => {
             onChange({
               target: {
                 name: "integrationConfigs",
-                value: updatedConfigs,
+                value: finalUpdate,
                 type: "object",
               },
             } as any);
@@ -176,7 +222,22 @@ export const IntegrationSettings = ({
                       {platform?.name}
                     </h5>
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                      {Object.keys(integration.config).length} fields configured
+                      {(() => {
+                        // Check if this is backend format with configured_fields_count
+                        const backendData =
+                          existingIntegrations.integrations?.[
+                            integration.platform
+                          ] || existingIntegrations[integration.platform];
+                        if (
+                          backendData?.configured_fields_count !== undefined
+                        ) {
+                          return `${backendData.configured_fields_count} fields configured`;
+                        }
+                        // Fallback to counting frontend config fields
+                        return `${
+                          Object.keys(integration.config).length
+                        } fields configured`;
+                      })()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

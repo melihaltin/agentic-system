@@ -389,6 +389,10 @@ class ThreadManager:
             # Use the agent config from thread context
             agent_config = thread_context.agent_config
 
+            print(
+                f"📝 Starting voice agent thread {thread_id} with config: {agent_config}"
+            )
+
             # Create agent instance
             agent = AbandonedCartAgent(thread_context.voice_service, agent_config)
             thread_context.agent_instance = agent

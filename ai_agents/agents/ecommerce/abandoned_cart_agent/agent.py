@@ -56,10 +56,11 @@ class AbandonedCartAgent:
         """Create promo tool with injected call configuration"""
         from langchain_core.tools import tool
 
-        # Get data from call config
-        phone_number = self.call_config.get("phone_number", "")
+        # Get data from call config - handle different field names
+        phone_number = self.call_config.get("phone_number") or self.call_config.get(
+            "customer_phone", ""
+        )
         cart_id = self.call_config.get("cart_id", "")
-        customer_type = self.call_config.get("customer_type", "regular")
 
         @tool
         def internal_generate_promo_code() -> Dict[str, Any]:
@@ -76,12 +77,8 @@ class AbandonedCartAgent:
             print("🛠️ generate_promo_code tool called with injected config")
 
             # Use injected configuration data
-            discount = (
-                random.randint(15, 25)
-                if customer_type == "VIP"
-                else random.randint(10, 20)
-            )
-            prefix = "VIP" if customer_type == "VIP" else "SAVE"
+            discount = random.randint(15, 25)
+            prefix = "SAVE"
 
             suffix = "".join(
                 random.choices(string.ascii_uppercase + string.digits, k=6)
@@ -92,7 +89,6 @@ class AbandonedCartAgent:
                 "promo_code": promo_code,
                 "discount_percent": discount,
                 "cart_id": cart_id or "N/A",
-                "customer_type": customer_type,
                 "valid_until": "2025-12-31",
                 "generated_at": datetime.now().isoformat(),
             }
@@ -142,19 +138,42 @@ Happy shopping! 🛍️"""
                 Keep it simple and friendly!
             """
 
-        # Extract configuration details
+        print(f"📝 Building dynamic system prompt from call config {self.call_config}")
+        # Extract configuration details - handle both nested and flat structures
         business_info = self.call_config.get("business_info", {})
+        print(f"📝 Extracting business info: {business_info}")
+
+        # Get customer name directly from config (flat structure)
         customer_name = self.call_config.get("customer_name", "")
+        print(f"📝 Extracting customer name: {customer_name}")
+
         agent_name = self.call_config.get("agent_name", "AI Assistant")
-        customer_type = self.call_config.get("customer_type", "regular")
 
         # Extract cart data for personalized conversation
         cart_data = self.call_config.get("cart_data", [])
         platform_data = self.call_config.get("platform_data", {})
 
-        company_name = business_info.get("company_name", "our company")
-        company_description = business_info.get("description", "")
-        company_website = business_info.get("website", "")
+        # Get company info - try nested structure first, then flat structure
+        company_name = (
+            business_info.get("company_name")
+            or self.call_config.get("business_name")
+            or "our company"
+        )
+        company_description = (
+            business_info.get("description")
+            or self.call_config.get("business_description")
+            or ""
+        )
+        company_website = (
+            business_info.get("website")
+            or self.call_config.get("business_website")
+            or ""
+        )
+
+        print(
+            f"📝 Building system prompt for {company_name}, customer: {customer_name}"
+            f", cart items: {len(cart_data)}, platform: {list(platform_data.keys()) if platform_data else 'N/A'}"
+        )
 
         # Build dynamic system prompt with cart details
         prompt_parts = [
@@ -172,12 +191,16 @@ Happy shopping! 🛍️"""
         prompt_parts.extend(
             [
                 f"You are calling customer {customer_name if customer_name else 'the customer'}.",
-                f"Customer type: {customer_type}",
             ]
         )
 
         # Add cart-specific details for personalized conversation
+        # Handle both nested cart_data and flat cart structure
+        cart_products = self.call_config.get("cart_products", [])
+        cart_total = self.call_config.get("cart_total", 0)
+
         if cart_data:
+            # Handle nested cart structure
             total_cart_value = 0
             cart_items = []
 
@@ -200,6 +223,25 @@ Happy shopping! 🛍️"""
                         + ("..." if len(cart_items) > 3 else ""),
                     ]
                 )
+        elif cart_products:
+            # Handle flat cart structure from your config
+            cart_items = []
+            for product in cart_products:
+                item_name = product.get("title") or product.get(
+                    "name", "Unknown Product"
+                )
+                item_price = product.get("price", 0)
+                cart_items.append(f"{item_name} (${item_price})")
+
+            if cart_items:
+                prompt_parts.extend(
+                    [
+                        f"ABANDONED CART DETAILS:",
+                        f"- Total cart value: ${cart_total:.2f}",
+                        f"- Items in cart: {', '.join(cart_items[:3])}"
+                        + ("..." if len(cart_items) > 3 else ""),
+                    ]
+                )
 
         # Add platform information
         if platform_data:
@@ -210,18 +252,21 @@ Happy shopping! 🛍️"""
         prompt_parts.extend(
             [
                 f"CONVERSATION GOAL: Help the customer complete their purchase by offering a personalized discount.",
-                f"Customer type: {customer_type}",
                 "You understand all languages and will continue in whichever language the customer speaks.",
                 "Your conversation flow:",
                 "1. Politely introduce yourself and the company, then offer a special promo code for their abandoned cart.",
                 "2. If the customer is interested, respond positively and immediately call the `internal_generate_promo_code` tool.",
                 "3. DO NOT ask for any personal information like phone number or cart ID - you already have access to all necessary information.",
-                "4. After the tool runs, inform the customer that you're sending the promo code via SMS and end the conversation politely.",
+                "4. After the tool runs, inform the customer that you're sending the promo code and details via SMS, and ask if they need anything else before ending the conversation. Then if they don't, end the conversation.",
                 "Keep the conversation natural, friendly, and professional. Focus on the value of the offer, not on collecting information.",
             ]
         )
 
-        return " ".join(prompt_parts)
+        prompt_string = " ".join(prompt_parts)
+
+        print(f"📝 Final system prompt: {prompt_string}")
+
+        return prompt_string
 
     def _build_graph(self):
         """Build LangGraph workflow."""
@@ -241,20 +286,20 @@ Happy shopping! 🛍️"""
                 isinstance(last_message, HumanMessage)
                 and last_message.content == "START_CALL"
             ):
-                # Generate initial greeting
-                business_name = (
-                    self.call_config.get("business_info", {}).get(
-                        "company_name", "our company"
+                # Generate initial greeting - handle both nested and flat structures
+                if self.call_config:
+                    business_info = self.call_config.get("business_info", {})
+                    business_name = (
+                        business_info.get("company_name")
+                        or self.call_config.get("business_name")
+                        or "our company"
                     )
-                    if self.call_config
-                    else "our company"
-                )
-                agent_name = (
-                    self.call_config.get("agent_name", "AI Assistant")
-                    if self.call_config
-                    else "AI Assistant"
-                )
-                customer_name = self.call_config.get("customer_name", "")
+                    agent_name = self.call_config.get("agent_name", "AI Assistant")
+                    customer_name = self.call_config.get("customer_name", "")
+                else:
+                    business_name = "our company"
+                    agent_name = "AI Assistant"
+                    customer_name = ""
 
                 name_part = f", {customer_name}" if customer_name else ""
                 greeting = f"Hello{name_part}! This is {agent_name} calling from {business_name}. I noticed you left some items in your cart, and I'd like to offer you an exclusive promotional code to complete your purchase. Would you be interested?"
@@ -299,9 +344,12 @@ Happy shopping! 🛍️"""
 
         except Exception as e:
             print(f"❌ Error generating greeting: {str(e)}")
-            # Fallback to static message
-            business_name = self.call_config.get("business_info", {}).get(
-                "company_name", "our company"
+            # Fallback to static message - handle both nested and flat structures
+            business_info = self.call_config.get("business_info", {})
+            business_name = (
+                business_info.get("company_name")
+                or self.call_config.get("business_name")
+                or "our company"
             )
             agent_name = self.call_config.get("agent_name", "AI Assistant")
             customer_name = self.call_config.get("customer_name", "")

@@ -4,7 +4,7 @@ Twilio Outbound Voice Agent - Fixed
 
 import os
 import json
-from typing import Dict, Any
+from typing import Dict, Any, TypedDict
 from datetime import datetime
 
 # LangGraph imports
@@ -23,12 +23,28 @@ from twilio.twiml.voice_response import VoiceResponse, Gather
 from services.voice_service import VoiceService
 from services.tts.elevenlabs import ElevenLabsTTS
 from langchain_core.tools import tool
+from typing import List, Annotated
+import operator
+from langchain_core.messages import BaseMessage, SystemMessage
+
+
+class AgentState(TypedDict):
+    """
+    Konuşma durumu için genişletilmiş yapı.
+
+    Attributes:
+        messages: Konuşmadaki mesajların listesi. `operator.add` ile her seferinde listeye ekleme yapılır.
+        system_prompt: Bu konuşma için oluşturulan ve yeniden kullanılan sistem talimatı.
+    """
+
+    messages: Annotated[List[BaseMessage], operator.add]
+    system_prompt: str
 
 
 class AbandonedCartAgent:
-    """Twilio outbound voice agent with LangGraph integration"""
 
     def __init__(self, voice_service: VoiceService, call_config: Dict[str, Any] = None):
+
         self.twilio_client = Client(
             os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN")
         )
@@ -286,60 +302,72 @@ Happy shopping! 🛍️"""
         return prompt_string
 
     def _build_graph(self):
-        """Build LangGraph workflow."""
+        """
+        LangGraph iş akışını, sistem talimatı için özel bir başlatma düğümü ile kurar.
+        Bu, talimatın her konuşma başlığı için yalnızca bir kez oluşturulmasını sağlar.
+        """
 
-        def agent_node(state: MessagesState):
-            """Main node that talks to the customer and calls tools."""
-            system_prompt = SystemMessage(content=self._create_dynamic_system_prompt())
+        def initialize_prompt_node(state: AgentState):
+            """
+            Grafiğin giriş noktası. Sistem talimatını yalnızca durum'da (state) mevcut değilse oluşturur.
+            Bu düğüm, her iş parçacığı (thread) için etkili bir şekilde yalnızca bir kez çalışır.
+            """
+            # Sadece durum'da prompt yoksa (yani konuşmanın ilk adımıysa) oluştur.
+            if not state.get("system_prompt"):
+                print(
+                    "✨ Sistem talimatı durumda bulunamadı. Bu konuşma için ilk kez oluşturuluyor."
+                )
+                prompt_content = self._create_dynamic_system_prompt()
+                # Durumu, oluşturulan talimatla güncellemek için geri döndür.
+                return {"system_prompt": prompt_content}
 
-            if len(state["messages"]) <= 1:
-                messages = [system_prompt] + state["messages"]
-            else:
-                messages = state["messages"]
+            # Eğer talimat zaten varsa, hiçbir şey yapma.
+            print("✅ Sistem talimatı zaten mevcut. Başlatma adımı atlanıyor.")
+            return {}
 
-            # Handle initial call start
-            last_message = state["messages"][-1]
-            if (
-                isinstance(last_message, HumanMessage)
-                and last_message.content == "START_CALL"
-            ):
-                # Generate initial greeting - handle both nested and flat structures
-                if self.call_config:
-                    business_info = self.call_config.get("business_info", {})
-                    business_name = (
-                        business_info.get("company_name")
-                        or self.call_config.get("business_name")
-                        or "our company"
-                    )
-                    agent_name = self.call_config.get("agent_name", "AI Assistant")
-                    customer_name = self.call_config.get("customer_name", "")
-                else:
-                    business_name = "our company"
-                    agent_name = "AI Assistant"
-                    customer_name = ""
+        def agent_node(state: AgentState):
+            """
+            Ana aracı düğümü. Artık önceden oluşturulmuş sistem talimatını kullanır.
+            """
+            # Sistem talimatını artık her seferinde oluşturmak yerine doğrudan durumdan okuyoruz.
+            system_prompt = SystemMessage(content=state["system_prompt"])
 
-                name_part = f", {customer_name}" if customer_name else ""
-                greeting = f"Hello{name_part}! This is {agent_name} calling from {business_name}. I noticed you left some items in your cart, and I'd like to offer you an exclusive promotional code to complete your purchase. Would you be interested?"
+            # Mesaj listesini sistem talimatı ile birleştirerek oluştur.
+            messages = [system_prompt] + state["messages"]
 
-                return {"messages": [AIMessage(content=greeting)]}
-
+            # LLM'i çağır.
             response = self.llm_with_tools.invoke(messages)
             return {"messages": [response]}
 
+        # Araç düğümünü tanımla (değişiklik yok).
         tool_node = ToolNode([self.promo_tool, self.end_conversation_tool])
 
-        workflow = StateGraph(MessagesState)
+        # Grafiği YENİ AgentState ile oluştur.
+        workflow = StateGraph(AgentState)
+
+        # Yeni düğümlerimizi grafa ekliyoruz.
+        workflow.add_node("initializer", initialize_prompt_node)
         workflow.add_node("agent", agent_node)
         workflow.add_node("tools", tool_node)
 
-        workflow.set_entry_point("agent")
+        # Grafiğin GİRİŞ NOKTASINI 'initializer' olarak ayarlıyoruz.
+        workflow.set_entry_point("initializer")
+
+        # Düğümler arası akışı (kenarları) tanımlıyoruz.
+        # Başlatıcıdan sonra her zaman 'agent' düğümüne git.
+        workflow.add_edge("initializer", "agent")
+
+        # 'agent' düğümünden sonra koşullu olarak ya araçlara ya da sona git.
         workflow.add_conditional_edges(
             "agent",
             tools_condition,
             {"tools": "tools", END: END},
         )
+
+        # 'tools' düğümünden sonra tekrar 'agent' düğümüne dön.
         workflow.add_edge("tools", "agent")
 
+        # Derlenmiş grafiği döndür.
         return workflow.compile(checkpointer=self.memory)
 
     def get_initial_greeting(self, phone_number: str) -> str:

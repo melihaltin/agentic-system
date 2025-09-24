@@ -22,6 +22,7 @@ from twilio.twiml.voice_response import VoiceResponse, Gather
 
 from services.voice_service import VoiceService
 from services.tts.elevenlabs import ElevenLabsTTS
+from langchain_core.tools import tool
 
 
 class AbandonedCartAgent:
@@ -46,15 +47,16 @@ class AbandonedCartAgent:
 
         # Create promo code tool with injected configuration
         self.promo_tool = self._create_promo_tool()
-        self.llm_with_tools = self.llm.bind_tools([self.promo_tool])
+        self.end_conversation_tool = self._create_end_conversation_tool()
+        self.llm_with_tools = self.llm.bind_tools(
+            [self.promo_tool, self.end_conversation_tool]
+        )
 
         self.memory = MemorySaver()
         self.graph = self._build_graph()
         self.active_calls = {}
 
     def _create_promo_tool(self):
-        """Create promo tool with injected call configuration"""
-        from langchain_core.tools import tool
 
         # Get data from call config - handle different field names
         phone_number = self.call_config.get("phone_number") or self.call_config.get(
@@ -108,6 +110,21 @@ class AbandonedCartAgent:
 
         return internal_generate_promo_code
 
+    def _create_end_conversation_tool(self):
+        """Telefon görüşmesini sonlandırmak için AI'nın çağıracağı aracı oluşturur."""
+
+        @tool
+        def internal_end_conversation() -> str:
+            """
+            Call this tool to politely end the phone conversation. This should be used
+            only when the user has clearly indicated the conversation is over,
+            for example by saying 'goodbye', 'thank you, that's all', or 'I have no more questions'.
+            """
+            print("📞 End conversation tool called. Signaling to hang up.")
+            return "Conversation has been marked to end."
+
+        return internal_end_conversation
+
     def _send_promo_sms(self, phone_number: str, promo_data: Dict[str, Any]) -> bool:
         """Send promo SMS"""
         try:
@@ -117,10 +134,10 @@ Discount: %{promo_data['discount_percent']}
 Valid until: {promo_data['valid_until']}
 Happy shopping! 🛍️"""
 
-            message = self.twilio_client.messages.create(
-                body=message_body, from_=self.twilio_phone, to=phone_number
-            )
-            print(f"📱 SMS sent: {phone_number} (SID: {message.sid})")
+            # message = self.twilio_client.messages.create(
+            #     body=message_body, from_=self.twilio_phone, to=phone_number
+            # )
+            # print(f"📱 SMS sent: {phone_number} (SID: {message.sid})")
             return True
         except Exception as e:
             print(f"❌ SMS sending error: {str(e)}")
@@ -257,7 +274,7 @@ Happy shopping! 🛍️"""
                 "1. Politely introduce yourself and the company, then offer a special promo code for their abandoned cart.",
                 "2. If the customer is interested, respond positively and immediately call the `internal_generate_promo_code` tool.",
                 "3. DO NOT ask for any personal information like phone number or cart ID - you already have access to all necessary information.",
-                "4. After the tool runs, inform the customer that you're sending the promo code and details via SMS, and ask if they need anything else before ending the conversation. Then if they don't, end the conversation.",
+                "4. After the tool runs, inform the customer that you're sending the promo code and details via SMS. Then, ask if there is anything else you can help them with. Let the customer's response guide the conversation towards a natural conclusion."
                 "Keep the conversation natural, friendly, and professional. Focus on the value of the offer, not on collecting information.",
             ]
         )
@@ -309,7 +326,7 @@ Happy shopping! 🛍️"""
             response = self.llm_with_tools.invoke(messages)
             return {"messages": [response]}
 
-        tool_node = ToolNode([self.promo_tool])
+        tool_node = ToolNode([self.promo_tool, self.end_conversation_tool])
 
         workflow = StateGraph(MessagesState)
         workflow.add_node("agent", agent_node)
@@ -379,43 +396,78 @@ Happy shopping! 🛍️"""
             print(f"❌ Call error: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    def process_conversation(self, user_input: str, phone_number: str) -> str:
-        """Process user input and get a response from the agent."""
+    def process_conversation(
+        self, user_input: str, phone_number: str
+    ) -> Dict[str, Any]:
+        """
+        Process user input and get a response from the agent. This version correctly
+        handles the end_conversation tool as a direct signal to terminate the call,
+        avoiding a second round-trip to the LLM.
+        """
         thread_id = f"call_{phone_number.strip().replace('+', '')}"
         config = {"configurable": {"thread_id": thread_id}}
 
         try:
+            # 1. Kullanıcının girdisini LangGraph'a göndererek AI'nın kararını al.
             response = self.graph.invoke(
                 {"messages": [HumanMessage(content=user_input)]}, config=config
             )
-
             last_message = response["messages"][-1]
 
+            # 2. Eğer AI bir araç çağırmaya karar verdiyse:
             if last_message.tool_calls:
                 tool_call = last_message.tool_calls[0]
+                tool_name = tool_call["name"]
 
-                # Tool is called without any parameters since all config is injected
-                tool_output = self.promo_tool.invoke({})
+                # --- DÜZELTME BURADA ---
+                # 3. Eğer çağrılan araç "görüşmeyi bitir" sinyali ise:
+                if tool_name == "internal_end_conversation":
+                    print("✅ End conversation signal received. Terminating call.")
 
-                final_response = self.graph.invoke(
-                    {
-                        "messages": [
-                            ToolMessage(
-                                content=json.dumps(tool_output),
-                                tool_call_id=tool_call["id"],
-                            )
-                        ]
-                    },
-                    config=config,
-                )
+                    # AI'nın araçla birlikte ürettiği veda mesajını kullan.
+                    # Genellikle content alanı "Görüşmek üzere!" gibi bir metin içerir.
+                    final_text = last_message.content
 
-                return final_response["messages"][-1].content
+                    # Eğer content alanı boşsa (bazı modellerde olabilir), genel bir veda kullan.
+                    if not final_text or final_text.strip() == "":
+                        final_text = "Thank you. Goodbye."  # Bu bir güvenlik ağıdır.
 
-            return last_message.content
+                    # Webhook'a görüşmeyi bitirmesi için sinyali ve son metni gönder.
+                    # Tekrar graph.invoke yapmıyoruz!
+                    return {"text": final_text, "tool_called": tool_name}
+
+                # 4. Eğer çağrılan araç "promo kodu oluştur" ise, önceki gibi devam et.
+                if tool_name == "internal_generate_promo_code":
+                    print("▶️ Executing promo code tool...")
+                    tool_output = self.promo_tool.invoke({})
+
+                    # Aracın sonucunu LLM'e göndererek nihai cevabı al.
+                    final_response = self.graph.invoke(
+                        {
+                            "messages": [
+                                ToolMessage(
+                                    content=json.dumps(tool_output),
+                                    tool_call_id=tool_call["id"],
+                                )
+                            ]
+                        },
+                        config=config,
+                    )
+                    return {
+                        "text": final_response["messages"][-1].content,
+                        "tool_called": tool_name,
+                    }
+
+            # 5. Eğer araç çağrılmadıysa, bu normal bir konuşma adımıdır.
+            return {"text": last_message.content, "tool_called": None}
 
         except Exception as e:
             print(f"❌ Conversation error: {str(e)}")
-            return "Sorry, something went wrong. Let me send you that promo code anyway. Goodbye."
+            # Hata durumunda da görüşmeyi güvenli bir şekilde sonlandır.
+            return {
+                "text": "Sorry, something went wrong. Goodbye.",
+                "tool_called": "internal_end_conversation",
+            }
 
     def generate_voice_response(
         self, text: str, is_final: bool = False, gather_input: bool = True

@@ -146,108 +146,59 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
         response.hangup()
 
         return str(response)
-
+    
+    
+    
     @app.route("/webhook/outbound/process", methods=["POST"])
     def handle_outbound_process():
-        """Process user speech input."""
+        """Process user speech input using the AI-driven tool-calling logic."""
         to_number = request.form.get("To")
         call_sid = request.form.get("CallSid")
         speech_result = request.form.get("SpeechResult", "")
 
         print(f"🎤 User response ({to_number}): '{speech_result}'")
 
-        # Find thread context for this call
-        thread_context = None
-
-        if call_sid:
-            thread_context = thread_manager.get_thread_by_call_sid(call_sid)
-
-        if not thread_context and to_number:
-            thread_context = thread_manager.get_thread_by_phone(to_number)
-
-        # Use thread-specific agent or fallback to default
+        # Agent'ı ve thread'i bulma mantığı (değişmedi)
+        thread_context = thread_manager.get_thread_by_call_sid(call_sid) or thread_manager.get_thread_by_phone(to_number)
+        
         if thread_context and thread_context.agent_instance:
             current_agent = thread_context.agent_instance
-            current_voice_service = thread_context.voice_service
-
-            # Log user input
-            thread_manager.add_conversation_log(
-                thread_context.thread_id, speech_result, is_agent=False
-            )
+            # ... (Diğer context'e özel değişkenler)
         else:
-            current_agent = agent
-            current_voice_service = voice_service
+            current_agent = agent # Varsayılan agent
             print("⚠️ Using default agent (thread not found)")
+        
+        # --- YENİ MANTIK BURADA BAŞLIYOR ---
 
-        agent_response_text = current_agent.process_conversation(
-            speech_result, to_number
-        )
+        # 1. Agent'tan yapılandırılmış cevap al
+        agent_result = current_agent.process_conversation(speech_result, to_number)
+        agent_response_text = agent_result["text"]
+        tool_called = agent_result["tool_called"]
 
-        # Log agent response if thread context exists
+        print(f"🤖 Agent response: '{agent_response_text}' (Tool called: {tool_called})")
+
+        # (Opsiyonel) Cevabı logla
         if thread_context:
             thread_manager.add_conversation_log(
                 thread_context.thread_id, agent_response_text, is_agent=True
             )
 
-        # Check if conversation should end
-        is_final = (
-            "sms" in agent_response_text.lower()
-            or "sending" in agent_response_text.lower()
-            or "goodbye" in agent_response_text.lower()
+        # 2. Görüşmenin bitip bitmediğine AI'nın araç çağrısına göre karar ver
+        is_final = (tool_called == 'internal_end_conversation')
+        
+        # 3. Karara göre TwiML oluştur
+        response = current_agent.generate_voice_response(
+            text=agent_response_text,
+            is_final=is_final,
+            gather_input=not is_final  # Görüşme bitmiyorsa girdi topla
         )
 
-        if is_final:
-            # Update thread status to completed if thread exists
-            if thread_context:
-                thread_manager.update_thread_status(
-                    thread_context.thread_id, ThreadStatus.COMPLETED
-                )
+        if is_final and thread_context:
+            thread_manager.update_thread_status(thread_context.thread_id, ThreadStatus.COMPLETED)
 
-            response = current_agent.generate_voice_response(
-                agent_response_text, is_final=True
-            )
-        else:
-            response = VoiceResponse()
-            gather = response.gather(
-                input="speech",
-                action="/webhook/outbound/process",
-                method="POST",
-                speech_timeout="auto",
-                language="en-US",
-            )
+        return str(response), 200, {'Content-Type': 'text/xml'}
 
-            # Generate voice response using the configured TTS
-            if isinstance(current_voice_service.tts_provider, ElevenLabsTTS):
-                try:
-                    # Pass voice_id from thread context if available
-                    tts_kwargs = {}
-                    if thread_context and thread_context.agent_config:
-                        voice_id = thread_context.agent_config.get("voice_id")
-                        if voice_id:
-                            tts_kwargs["voice_id"] = voice_id
-                            print(f"🎤 Using voice_id from thread context: {voice_id}")
-
-                    audio_url = current_voice_service.text_to_speech(
-                        agent_response_text, **tts_kwargs
-                    )
-                    gather.play(audio_url)
-                except Exception as e:
-                    print(f"❌ ElevenLabs error, using Twilio TTS: {e}")
-                    gather.say(
-                        agent_response_text, voice="Polly.Joanna", language="en-US"
-                    )
-            else:
-                gather.say(agent_response_text, voice="Polly.Joanna", language="en-US")
-
-            response.say(
-                "I didn't get your response. Goodbye.",
-                voice="Polly.Joanna",
-                language="en-US",
-            )
-            response.hangup()
-
-        return str(response)
-
+    
     @app.route("/start-call", methods=["POST"])
     def start_call_endpoint():
         """API endpoint to start AI agent call with custom configuration"""

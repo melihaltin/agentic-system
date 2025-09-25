@@ -20,3 +20,4 @@ httpx
 anyio
 pydantic
 python-dotenv
+pydantic-settings

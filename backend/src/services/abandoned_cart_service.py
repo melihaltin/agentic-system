@@ -336,6 +336,7 @@ class AbandonedCartAgentService:
                     "selected_voice_id": agent_info.get("voice_info", {}).get(
                         "voice_id_external"
                     ),
+                    "language": agent_info.get("agent_info", {}).get("language", "en"),
                     "tts_provider": agent_info.get("voice_info", {}).get(
                         "provider", "elevenlabs"
                     ),

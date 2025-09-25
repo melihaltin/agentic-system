@@ -131,14 +131,6 @@ class ThreadManager:
                     "error": "Abandoned cart data with products is required",
                     "thread_id": None,
                 }
-
-            print(f"✅ Payload validation successful")
-            print(f"👤 Customer: {customer_name} ({customer_phone})")
-            print(f"🏢 Business: {business_data.get('name')}")
-            print(
-                f"🛒 Cart Value: {cart_data.get('currency', 'USD')} {cart_data.get('total_value', 0)}"
-            )
-
             # Check concurrent thread limit
             if len(self.active_threads) >= self.max_concurrent_threads:
                 return {

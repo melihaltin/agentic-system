@@ -182,6 +182,10 @@ Happy shopping! 🛍️"""
 
         agent_name = self.call_config.get("agent_name", "AI Assistant")
 
+        # Extract language configuration
+        language = self.call_config.get("language", "English")
+        print(f"📝 Extracting language: {language}")
+
         # Extract cart data for personalized conversation
         cart_data = self.call_config.get("cart_data", [])
         platform_data = self.call_config.get("platform_data", {})
@@ -206,6 +210,7 @@ Happy shopping! 🛍️"""
         print(
             f"📝 Building system prompt for {company_name}, customer: {customer_name}"
             f", cart items: {len(cart_data)}, platform: {list(platform_data.keys()) if platform_data else 'N/A'}"
+            f", language: {language}"
         )
 
         # Build dynamic system prompt with cart details
@@ -282,15 +287,25 @@ Happy shopping! 🛍️"""
             if platforms:
                 prompt_parts.append(f"Platform: {', '.join(platforms)}")
 
+        # Add language instructions
         prompt_parts.extend(
             [
                 f"CONVERSATION GOAL: Help the customer complete their purchase by offering a personalized discount.",
-                "You understand all languages and will continue in whichever language the customer speaks.",
+                f"LANGUAGE INSTRUCTIONS:",
+                f"- You MUST start the conversation in {language}.",
+                f"- After starting in {language}, you should adapt to whatever language the customer responds in.",
+                f"- If the customer switches to a different language, continue the conversation in their preferred language.",
+                f"- You understand all languages and can communicate fluently in any language the customer chooses.",
+            ]
+        )
+
+        prompt_parts.extend(
+            [
                 "Your conversation flow:",
-                "1. Politely introduce yourself and the company, then offer a special promo code for their abandoned cart.",
+                f"1. Politely introduce yourself and the company in {language}, then offer a special promo code for their abandoned cart.",
                 "2. If the customer is interested, respond positively and immediately call the `internal_generate_promo_code` tool.",
                 "3. DO NOT ask for any personal information like phone number or cart ID - you already have access to all necessary information.",
-                "4. After the tool runs, inform the customer that you're sending the promo code and details via SMS. Then, ask if there is anything else you can help them with. Let the customer's response guide the conversation towards a natural conclusion."
+                "4. After the tool runs, inform the customer that you're sending the promo code and details via SMS. Then, ask if there is anything else you can help them with. Let the customer's response guide the conversation towards a natural conclusion.",
                 "Keep the conversation natural, friendly, and professional. Focus on the value of the offer, not on collecting information.",
             ]
         )

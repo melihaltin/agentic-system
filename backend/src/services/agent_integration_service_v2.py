@@ -80,6 +80,7 @@ class AgentIntegrationService:
             "agent_id": agent_id,
             "agent_info": {
                 "custom_name": agent_data.get("custom_name"),
+                "language": agent_data.get("language", "en"),
                 "is_configured": agent_data.get("is_configured", False),
                 "total_interactions": agent_data.get("total_interactions", 0),
                 "total_minutes_used": float(agent_data.get("total_minutes_used", 0)),

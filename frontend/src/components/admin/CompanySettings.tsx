@@ -94,7 +94,7 @@ const ProfileSettings: React.FC = () => {
           {!isEditing && (
             <Button
               onClick={() => setIsEditing(true)}
-              variant="primary"
+              variant="outline"
               size="sm"
             >
               Edit Profile
@@ -132,22 +132,18 @@ const ProfileSettings: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 gap-6 mb-6">
             <Input
-              label="Full Name"
               name="full_name"
               value={formData.full_name || ""}
               onChange={handleInputChange}
-              error={errors.full_name}
               disabled={!isEditing}
               required
             />
 
             <Input
-              label="Email"
               name="email"
               type="email"
               value={formData.email || ""}
               onChange={handleInputChange}
-              error={errors.email}
               disabled={!isEditing}
               required
             />
@@ -185,7 +181,7 @@ const ProfileSettings: React.FC = () => {
               >
                 Cancel
               </Button>
-              <Button type="submit" isLoading={loading} disabled={loading}>
+              <Button type="submit" disabled={loading}>
                 {loading ? "Saving..." : "Save"}
               </Button>
             </div>

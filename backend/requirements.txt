@@ -22,4 +22,5 @@ pydantic
 python-dotenv
 pydantic-settings
 email-validator
+jose
 gotrue

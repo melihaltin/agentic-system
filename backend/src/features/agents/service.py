@@ -407,6 +407,9 @@ class AgentManagementService:
                     update_data["custom_prompt"] = config["custom_prompt"]
                 if config.get("selected_voice_id"):
                     update_data["selected_voice_id"] = config["selected_voice_id"]
+                if config.get("language"):
+                    # Persist selected language directly on company_agents
+                    update_data["language"] = config["language"]
 
                 # Store only integration references in configuration field (no sensitive data)
                 if integrations_to_save:
@@ -494,6 +497,7 @@ class AgentManagementService:
                     "custom_name": config.get("custom_name"),
                     "custom_prompt": config.get("custom_prompt"),
                     "selected_voice_id": config.get("selected_voice_id"),
+                    "language": config.get("language") or "en-US",
                     "configuration": configuration_data,
                     "monthly_limit": config.get("monthly_limit"),
                     "daily_limit": config.get("daily_limit"),
@@ -590,6 +594,7 @@ class AgentManagementService:
                 "custom_name",
                 "custom_prompt",
                 "selected_voice_id",
+                "language",
                 "configuration",
                 "monthly_limit",
                 "daily_limit",

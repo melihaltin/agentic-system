@@ -60,10 +60,26 @@ export class AgentService {
     config?: any
   ): Promise<any> {
     try {
+      // Ensure language is an ISO code if provided as a name
+      const normalizedConfig = { ...config };
+      if (normalizedConfig?.language) {
+        const lower = String(normalizedConfig.language).toLowerCase();
+        if (lower === "turkish" || lower === "türkçe" || lower === "tr")
+          normalizedConfig.language = "tr-TR";
+        else if (lower === "english" || lower === "en" || lower === "ingilizce")
+          normalizedConfig.language = "en-US";
+        else if (lower === "spanish" || lower === "es" || lower === "español")
+          normalizedConfig.language = "es-ES";
+        else if (lower === "german" || lower === "de" || lower === "deutsch")
+          normalizedConfig.language = "de-DE";
+        else if (lower === "french" || lower === "fr" || lower === "français")
+          normalizedConfig.language = "fr-FR";
+      }
+
       const result = await agentsApi.activateAgent(
         companyId,
         agentTemplateId,
-        config
+        normalizedConfig
       );
       return result.success ? result.agent : null;
     } catch (error) {
@@ -195,7 +211,7 @@ export class AgentService {
   static createDefaultSettings(agent: AgentType): AgentSettings {
     const baseSettings: BaseAgentSettings = {
       customName: agent.name,
-      language: "Turkish",
+      language: "tr-TR",
       enableAnalytics: true,
       integrationConfigs: {},
     };

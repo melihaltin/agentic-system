@@ -170,6 +170,7 @@ class CompanyAgentUpdate(BaseModel):
     custom_name: Optional[str] = None
     custom_prompt: Optional[str] = None
     selected_voice_id: Optional[str] = None
+    language: Optional[str] = None
     configuration: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
     monthly_limit: Optional[int] = None

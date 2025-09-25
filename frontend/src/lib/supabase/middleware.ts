@@ -1,10 +1,18 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
+function getLocaleFromPath(pathname: string): string | null {
+  const parts = pathname.split("/").filter(Boolean);
+  return parts.length > 0 ? parts[0] : null;
+}
+
+function buildPath(locale: string | null, path: string) {
+  if (!locale) return path;
+  return `/${locale}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
-
-
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,8 +34,9 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const { data } = await supabase.auth.getUser();
-  const user = data?.user ?? null;
+  // Use getSession for more reliable cookie-based auth detection
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData?.session?.user ?? null;
 
   if (user) {
     response.headers.set("x-user-id", user.id);
@@ -35,6 +44,28 @@ export async function updateSession(request: NextRequest) {
   } else {
     response.headers.delete("x-user-id");
     response.headers.delete("x-user-email");
+  }
+
+  // Auth guards
+  const url = request.nextUrl.clone();
+  const locale = getLocaleFromPath(url.pathname);
+
+  console.log("Locale detected in middleware:", locale);
+  const loginPath = buildPath(locale, "/login");
+  const registerPath = buildPath(locale, "/register");
+  const isAuthPage =
+    url.pathname === loginPath || url.pathname === registerPath;
+
+  // Not authenticated: allow only login/register
+  if (!user && !isAuthPage) {
+    url.pathname = loginPath;
+    return { response: NextResponse.redirect(url), user: null };
+  }
+
+  // Authenticated: prevent access to login/register
+  if (user && isAuthPage) {
+    url.pathname = buildPath(locale, "/admin");
+    return { response: NextResponse.redirect(url), user };
   }
 
   return { response, user };

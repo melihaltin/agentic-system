@@ -20,11 +20,6 @@ export const useAgents = (businessCategory?: string) => {
       return profile.company.id;
     }
 
-    // Temporary fix: If user ID matches known user, return correct company ID
-    if (profile?.id === "2e30bce3-9ba0-4180-b624-559e4e59e600") {
-      return "3a9e32fa-d4f4-4da8-8c93-f1f931f2924d";
-    }
-
     // If profile.company.id is not available but we have user ID,
     // we need to fetch the company profile from backend
     if (profile?.id) {
@@ -58,6 +53,9 @@ export const useAgents = (businessCategory?: string) => {
   const loadAgentTemplates = async (sectorId: string) => {
     try {
       const templates = await AgentService.loadAgentTemplates(sectorId);
+
+      console.log("Loaded templates for sector", sectorId, templates);
+
       setAvailableTemplates(templates);
       return templates;
     } catch (err) {
@@ -116,6 +114,25 @@ export const useAgents = (businessCategory?: string) => {
     companyAgents: any[],
     templates: any[] = availableTemplates
   ): AgentType[] => {
+    const normalizeLanguage = (lang: string | undefined): string => {
+      if (!lang) return "tr-TR";
+      const lower = lang.toLowerCase();
+      // Map common names to ISO codes
+      if (lower === "turkish" || lower === "türkçe" || lower === "tr")
+        return "tr-TR";
+      if (lower === "english" || lower === "en" || lower === "ingilizce")
+        return "en-US";
+      if (lower === "spanish" || lower === "es" || lower === "español")
+        return "es-ES";
+      if (lower === "german" || lower === "de" || lower === "deutsch")
+        return "de-DE";
+      if (lower === "french" || lower === "fr" || lower === "français")
+        return "fr-FR";
+      // If already looks like an ISO code (xx-XX), return as is
+      if (/^[a-z]{2}-[A-Z]{2}$/.test(lang)) return lang;
+      return "en-US";
+    };
+
     return companyAgents.map((agent) => {
       // Template bilgilerini bul
       const templateData = templates.find(
@@ -213,8 +230,9 @@ export const useAgents = (businessCategory?: string) => {
             agent.custom_prompt ||
             agent.template_prompt ||
             templateData?.default_prompt,
-          language:
-            agent.language || templateData?.default_language || "Turkish",
+          language: normalizeLanguage(
+            agent.language || templateData?.default_language || "tr-TR"
+          ),
           enableAnalytics: agent.enable_analytics !== false,
           integrationConfigs: {
             ...templateData?.default_integrations,
@@ -255,6 +273,7 @@ export const useAgents = (businessCategory?: string) => {
         custom_name: config?.custom_name || template?.name,
         custom_prompt: config?.custom_prompt || template?.default_prompt,
         selected_voice_id: config?.selected_voice_id,
+        language: config?.language,
         configuration: config?.configuration || {},
         integrations: config?.integrationConfigs || {},
       };

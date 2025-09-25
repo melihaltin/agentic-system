@@ -47,6 +47,7 @@ const MyAgentsPage: React.FC = () => {
         const config = {
           custom_name: updatedAgent.settings.customName,
           custom_prompt: updatedAgent.settings.customPrompt,
+          language: updatedAgent.settings.language,
           integrationConfigs: updatedAgent.settings.integrationConfigs || {},
           configuration: {},
           ...((updatedAgent.settings as any).voice && {

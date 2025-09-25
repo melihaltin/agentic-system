@@ -1,0 +1,157 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.agent_integration_links (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  agent_id uuid NOT NULL,
+  configuration_id uuid NOT NULL,
+  is_enabled boolean DEFAULT true,
+  permissions jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT agent_integration_links_pkey PRIMARY KEY (id),
+  CONSTRAINT agent_integration_links_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.company_agents(id),
+  CONSTRAINT agent_integration_links_configuration_id_fkey FOREIGN KEY (configuration_id) REFERENCES public.company_integration_configurations(id)
+);
+CREATE TABLE public.agent_templates (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  slug character varying NOT NULL UNIQUE,
+  description text,
+  sector_id uuid NOT NULL,
+  agent_type character varying NOT NULL,
+  capabilities jsonb DEFAULT '[]'::jsonb,
+  default_prompt text,
+  default_voice_id uuid,
+  requires_voice boolean DEFAULT false,
+  pricing_model character varying,
+  base_price numeric,
+  icon character varying,
+  preview_image character varying,
+  tags ARRAY,
+  configuration_schema jsonb,
+  is_active boolean DEFAULT true,
+  is_featured boolean DEFAULT false,
+  sort_order integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT agent_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT agent_templates_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES public.sectors(id),
+  CONSTRAINT agent_templates_default_voice_id_fkey FOREIGN KEY (default_voice_id) REFERENCES public.agent_voices(id)
+);
+CREATE TABLE public.agent_voices (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  provider character varying NOT NULL,
+  voice_id character varying NOT NULL,
+  language character varying DEFAULT 'tr-TR'::character varying,
+  gender character varying,
+  age_group character varying,
+  accent character varying,
+  sample_url text,
+  is_premium boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT agent_voices_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.company_agents (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  company_id uuid NOT NULL,
+  agent_template_id uuid NOT NULL,
+  custom_name character varying,
+  custom_prompt text,
+  selected_voice_id uuid,
+  configuration jsonb DEFAULT '{}'::jsonb,
+  is_active boolean DEFAULT true,
+  is_configured boolean DEFAULT false,
+  total_interactions integer DEFAULT 0,
+  total_minutes_used numeric DEFAULT 0,
+  last_used_at timestamp with time zone,
+  monthly_limit integer,
+  daily_limit integer,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  activated_at timestamp with time zone,
+  CONSTRAINT company_agents_pkey PRIMARY KEY (id),
+  CONSTRAINT company_agents_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.company_profile(id),
+  CONSTRAINT company_agents_agent_template_id_fkey FOREIGN KEY (agent_template_id) REFERENCES public.agent_templates(id),
+  CONSTRAINT company_agents_selected_voice_id_fkey FOREIGN KEY (selected_voice_id) REFERENCES public.agent_voices(id)
+);
+CREATE TABLE public.company_integration_configurations (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  company_id uuid NOT NULL,
+  provider_id uuid NOT NULL,
+  configuration_name character varying,
+  is_active boolean DEFAULT true,
+  is_default boolean DEFAULT false,
+  webhook_url character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  last_sync_at timestamp with time zone,
+  sync_status character varying DEFAULT 'pending'::character varying,
+  error_message text,
+  CONSTRAINT company_integration_configurations_pkey PRIMARY KEY (id),
+  CONSTRAINT company_integration_configurations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.company_profile(id),
+  CONSTRAINT company_integration_configurations_provider_id_fkey FOREIGN KEY (provider_id) REFERENCES public.integration_providers(id)
+);
+CREATE TABLE public.company_profile (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  company_name character varying NOT NULL,
+  phone_number character varying,
+  business_category character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  address text,
+  website text,
+  timezone character varying DEFAULT 'UTC'::character varying,
+  sector_id uuid,
+  CONSTRAINT company_profile_pkey PRIMARY KEY (id),
+  CONSTRAINT company_profile_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES public.sectors(id)
+);
+CREATE TABLE public.integration_credentials (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  configuration_id uuid NOT NULL,
+  credential_key character varying NOT NULL,
+  encrypted_value text NOT NULL,
+  expires_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT integration_credentials_pkey PRIMARY KEY (id),
+  CONSTRAINT integration_credentials_configuration_id_fkey FOREIGN KEY (configuration_id) REFERENCES public.company_integration_configurations(id)
+);
+CREATE TABLE public.integration_providers (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  slug character varying NOT NULL UNIQUE,
+  description text,
+  provider_type character varying NOT NULL,
+  logo_url character varying,
+  website_url character varying,
+  documentation_url character varying,
+  auth_type character varying NOT NULL,
+  required_fields jsonb NOT NULL DEFAULT '[]'::jsonb,
+  optional_fields jsonb DEFAULT '[]'::jsonb,
+  configuration_schema jsonb,
+  webhook_support boolean DEFAULT false,
+  rate_limits jsonb,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  sector_id uuid,
+  CONSTRAINT integration_providers_pkey PRIMARY KEY (id),
+  CONSTRAINT integration_providers_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES public.sectors(id)
+);
+CREATE TABLE public.sectors (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL UNIQUE,
+  slug character varying NOT NULL UNIQUE,
+  description text,
+  icon character varying,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT sectors_pkey PRIMARY KEY (id)
+);

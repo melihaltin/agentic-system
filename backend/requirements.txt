@@ -21,4 +21,5 @@ anyio
 pydantic
 python-dotenv
 pydantic-settings
+email-validator
 gotrue

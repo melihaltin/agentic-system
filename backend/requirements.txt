@@ -22,5 +22,5 @@ pydantic
 python-dotenv
 pydantic-settings
 email-validator
-jose
+python-jose[cryptography]
 gotrue

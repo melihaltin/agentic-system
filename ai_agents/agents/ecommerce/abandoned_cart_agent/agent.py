@@ -35,10 +35,12 @@ class AgentState(TypedDict):
     Attributes:
         messages: Konuşmadaki mesajların listesi. `operator.add` ile her seferinde listeye ekleme yapılır.
         system_prompt: Bu konuşma için oluşturulan ve yeniden kullanılan sistem talimatı.
+        should_end: Konuşmanın sonlanması gerekip gerekmediğini belirten flag.
     """
 
     messages: Annotated[List[BaseMessage], operator.add]
     system_prompt: str
+    should_end: bool
 
 
 class AbandonedCartAgent:
@@ -81,12 +83,12 @@ class AbandonedCartAgent:
         cart_id = self.call_config.get("cart_id", "")
 
         @tool
-        def internal_generate_promo_code() -> Dict[str, Any]:
+        def internal_generate_promo_code() -> str:
             """Generate a promo code for the customer and automatically send it via SMS.
             No parameters needed - all data comes from call configuration.
 
             Returns:
-                Dict[str, Any]: Details of the generated promo code and SMS status.
+                str: Simple success message for the agent to interpret naturally.
             """
             import random
             import string
@@ -114,15 +116,18 @@ class AbandonedCartAgent:
             # Send SMS using injected phone number
             if phone_number:
                 sms_sent = self._send_promo_sms(phone_number, promo_data)
-                promo_data["sms_sent"] = sms_sent
                 print(
                     f"✅ Promo code generated and SMS sent: {promo_code} (%{discount} discount)"
                 )
-            else:
-                promo_data["sms_sent"] = False
-                print(f"⚠️ Promo code generated but missing phone number: {promo_code}")
 
-            return promo_data
+                # Return simple, human-friendly message for the agent
+                if sms_sent:
+                    return f"Successfully created discount code {promo_code} with {discount}% discount and sent via SMS."
+                else:
+                    return f"Created discount code {promo_code} with {discount}% discount but SMS delivery failed."
+            else:
+                print(f"⚠️ Promo code generated but missing phone number: {promo_code}")
+                return f"Created discount code {promo_code} with {discount}% discount but no phone number available for SMS."
 
         return internal_generate_promo_code
 
@@ -167,8 +172,11 @@ Happy shopping! 🛍️"""
                 1. Politely greet the customer and offer a special promo code.
                 2. If the customer is interested, respond positively (e.g., "Great!") and immediately call the `internal_generate_promo_code` tool.
                 3. DO NOT ask for phone number or cart ID - you already have access to this information.
-                4. After the tool runs, say "I am sending your promo code and details via SMS. Have a great day!" and end the conversation.
-                Keep it simple and friendly!
+                4. IMPORTANT: After calling a tool, DO NOT read the technical output to the customer. Instead, interpret the results and respond naturally. For example:
+                   - After promo tool: "Perfect! I've generated a special discount code for you and I'm sending it to your phone via SMS right now. You should receive it shortly."
+                   - Keep responses conversational and human-friendly
+                5. When ready to end, use natural language like "Have a great day!" and call the `internal_end_conversation` tool.
+                Keep it simple, friendly, and never read technical data to customers!
             """
 
         print(f"📝 Building dynamic system prompt from call config {self.call_config}")
@@ -305,8 +313,12 @@ Happy shopping! 🛍️"""
                 f"1. Politely introduce yourself and the company in {language}, then offer a special promo code for their abandoned cart.",
                 "2. If the customer is interested, respond positively and immediately call the `internal_generate_promo_code` tool.",
                 "3. DO NOT ask for any personal information like phone number or cart ID - you already have access to all necessary information.",
-                "4. After the tool runs, inform the customer that you're sending the promo code and details via SMS. Then, ask if there is anything else you can help them with. Let the customer's response guide the conversation towards a natural conclusion.",
-                "Keep the conversation natural, friendly, and professional. Focus on the value of the offer, not on collecting information.",
+                "4. CRITICAL: After any tool runs, DO NOT read the technical output/JSON to the customer. Instead, interpret the results naturally:",
+                "   - After promo tool success: 'Perfect! I've created a special discount code for you and I'm sending it to your phone via SMS right now. You should receive it within a few moments.'",
+                "   - Keep all responses conversational and human-friendly, never technical",
+                "5. Ask if there's anything else you can help them with after providing the promo code.",
+                "6. IMPORTANT: When the customer indicates they want to end the conversation (saying goodbye, thank you, that's all, etc.), respond naturally (e.g., 'You're welcome! Have a wonderful day!') and then call the `internal_end_conversation` tool.",
+                "Always speak naturally like a human customer service representative. Never read system data, JSON, or technical outputs to customers.",
             ]
         )
 
@@ -318,14 +330,12 @@ Happy shopping! 🛍️"""
 
     def _build_graph(self):
         """
-        LangGraph iş akışını, sistem talimatı için özel bir başlatma düğümü ile kurar.
-        Bu, talimatın her konuşma başlığı için yalnızca bir kez oluşturulmasını sağlar.
+        LangGraph iş akışını düzeltilmiş conditional edge logic ile kurar.
         """
 
         def initialize_prompt_node(state: AgentState):
             """
             Grafiğin giriş noktası. Sistem talimatını yalnızca durum'da (state) mevcut değilse oluşturur.
-            Bu düğüm, her iş parçacığı (thread) için etkili bir şekilde yalnızca bir kez çalışır.
             """
             # Sadece durum'da prompt yoksa (yani konuşmanın ilk adımıysa) oluştur.
             if not state.get("system_prompt"):
@@ -334,7 +344,7 @@ Happy shopping! 🛍️"""
                 )
                 prompt_content = self._create_dynamic_system_prompt()
                 # Durumu, oluşturulan talimatla güncellemek için geri döndür.
-                return {"system_prompt": prompt_content}
+                return {"system_prompt": prompt_content, "should_end": False}
 
             # Eğer talimat zaten varsa, hiçbir şey yapma.
             print("✅ Sistem talimatı zaten mevcut. Başlatma adımı atlanıyor.")
@@ -344,7 +354,7 @@ Happy shopping! 🛍️"""
             """
             Ana aracı düğümü. Artık önceden oluşturulmuş sistem talimatını kullanır.
             """
-            # Sistem talimatını artık her seferinde oluşturmak yerine doğrudan durumdan okuyoruz.
+            # Sistem talimatını durumdan oku
             system_prompt = SystemMessage(content=state["system_prompt"])
 
             # Mesaj listesini sistem talimatı ile birleştirerek oluştur.
@@ -354,16 +364,64 @@ Happy shopping! 🛍️"""
             response = self.llm_with_tools.invoke(messages)
             return {"messages": [response]}
 
-        # Araç düğümünü tanımla (değişiklik yok).
-        tool_node = ToolNode([self.promo_tool, self.end_conversation_tool])
+        def should_continue(state: AgentState) -> str:
+            """
+            DÜZELTME: Geliştirilmiş conditional edge logic.
+            """
+            messages = state["messages"]
+            last_message = messages[-1]
+
+            # State-based kontrolü - eğer should_end flag'i set edilmişse END
+            if state.get("should_end", False):
+                print("🏁 should_end flag is set, ending conversation")
+                return END
+
+            # Tool call kontrolü
+            if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+                tool_call = last_message.tool_calls[0]
+                tool_name = tool_call.get("name", "")
+
+                print(f"🔧 Tool call detected: {tool_name}")
+
+                # Eğer end_conversation tool'u çağrılmışsa, should_end flag'ini set et
+                if tool_name == "internal_end_conversation":
+                    print("🔚 End conversation tool detected, will end after execution")
+                    return "tools"  # Önce tool'u çalıştır, sonra end
+
+                # Diğer tool'lar için normal flow
+                return "tools"
+
+            print("💬 No tool calls, continuing conversation")
+            return END
+
+        def tools_node_wrapper(state: AgentState):
+            """
+            Tool node wrapper - end_conversation tool'u çağrıldığında should_end flag'ini set eder.
+            Ayrıca tool çıktılarının LLM tarafından doğal dilde işlenmesini sağlar.
+            """
+            messages = state["messages"]
+            last_message = messages[-1]
+
+            # Tool'u çalıştır
+            tool_node = ToolNode([self.promo_tool, self.end_conversation_tool])
+            result = tool_node.invoke(state)
+
+            # Eğer end_conversation tool'u çağrıldıysa, should_end flag'ini set et
+            if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+                tool_call = last_message.tool_calls[0]
+                if tool_call.get("name") == "internal_end_conversation":
+                    print("🏁 Setting should_end flag to true")
+                    result["should_end"] = True
+
+            return result
 
         # Grafiği YENİ AgentState ile oluştur.
         workflow = StateGraph(AgentState)
 
-        # Yeni düğümlerimizi grafa ekliyoruz.
+        # Düğümlerimizi grafa ekliyoruz.
         workflow.add_node("initializer", initialize_prompt_node)
         workflow.add_node("agent", agent_node)
-        workflow.add_node("tools", tool_node)
+        workflow.add_node("tools", tools_node_wrapper)
 
         # Grafiğin GİRİŞ NOKTASINI 'initializer' olarak ayarlıyoruz.
         workflow.set_entry_point("initializer")
@@ -375,12 +433,19 @@ Happy shopping! 🛍️"""
         # 'agent' düğümünden sonra koşullu olarak ya araçlara ya da sona git.
         workflow.add_conditional_edges(
             "agent",
-            tools_condition,
+            should_continue,
             {"tools": "tools", END: END},
         )
 
-        # 'tools' düğümünden sonra tekrar 'agent' düğümüne dön.
-        workflow.add_edge("tools", "agent")
+        # 'tools' düğümünden sonra tekrar condition check
+        workflow.add_conditional_edges(
+            "tools",
+            should_continue,
+            {
+                "tools": "agent",
+                END: END,
+            },  # should_end flag varsa END, yoksa agent'a dön
+        )
 
         # Derlenmiş grafiği döndür.
         return workflow.compile(checkpointer=self.memory)
@@ -421,10 +486,16 @@ Happy shopping! 🛍️"""
         self, to_number: str, customer_name: str = ""
     ) -> Dict[str, Any]:
         """Make an outbound call."""
+
         try:
             webhook_url = f"{os.getenv('WEBHOOK_BASE_URL')}/webhook/outbound/start"
+
+            language = self.call_config.get("language", "en-US")
             call = self.twilio_client.calls.create(
-                to=to_number, from_=self.twilio_phone, url=webhook_url, method="POST"
+                to=to_number,
+                from_=self.twilio_phone,
+                url=webhook_url,
+                method="POST",
             )
             self.active_calls[call.sid] = {
                 "phone_number": to_number,
@@ -443,73 +514,46 @@ Happy shopping! 🛍️"""
         self, user_input: str, phone_number: str
     ) -> Dict[str, Any]:
         """
-        Process user input and get a response from the agent. This version correctly
-        handles the end_conversation tool as a direct signal to terminate the call,
-        avoiding a second round-trip to the LLM.
+        Process user input and get a response from the agent.
+        Bu düzeltilmiş versiyonda LangGraph'ın kendi conditional edge logic'i
+        conversation'ın bitip bitmeyeceğini belirler.
         """
         thread_id = f"call_{phone_number.strip().replace('+', '')}"
         config = {"configurable": {"thread_id": thread_id}}
 
         try:
-            # 1. Kullanıcının girdisini LangGraph'a göndererek AI'nın kararını al.
+            # 1. Kullanıcının girdisini LangGraph'a gönder ve response al
             response = self.graph.invoke(
                 {"messages": [HumanMessage(content=user_input)]}, config=config
             )
+
+            # 2. Response'tan son mesajı ve state'i al
             last_message = response["messages"][-1]
+            should_end = response.get("should_end", False)
 
-            # 2. Eğer AI bir araç çağırmaya karar verdiyse:
-            if last_message.tool_calls:
-                tool_call = last_message.tool_calls[0]
-                tool_name = tool_call["name"]
+            print(f"🤖 Agent response: '{last_message.content}'")
+            print(f"🏁 Should end: {should_end}")
 
-                # --- DÜZELTME BURADA ---
-                # 3. Eğer çağrılan araç "görüşmeyi bitir" sinyali ise:
-                if tool_name == "internal_end_conversation":
-                    print("✅ End conversation signal received. Terminating call.")
+            # 3. Response'u hazırla
+            result = {"text": last_message.content, "should_end": should_end}
 
-                    # AI'nın araçla birlikte ürettiği veda mesajını kullan.
-                    # Genellikle content alanı "Görüşmek üzere!" gibi bir metin içerir.
-                    final_text = last_message.content
+            # Tool çağrısı varsa log et
+            if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+                tool_name = last_message.tool_calls[0].get("name", "")
+                result["tool_called"] = tool_name
+                print(f"🔧 Tool called: {tool_name}")
+            else:
+                result["tool_called"] = None
 
-                    # Eğer content alanı boşsa (bazı modellerde olabilir), genel bir veda kullan.
-                    if not final_text or final_text.strip() == "":
-                        final_text = "Thank you. Goodbye."  # Bu bir güvenlik ağıdır.
-
-                    # Webhook'a görüşmeyi bitirmesi için sinyali ve son metni gönder.
-                    # Tekrar graph.invoke yapmıyoruz!
-                    return {"text": final_text, "tool_called": tool_name}
-
-                # 4. Eğer çağrılan araç "promo kodu oluştur" ise, önceki gibi devam et.
-                if tool_name == "internal_generate_promo_code":
-                    print("▶️ Executing promo code tool...")
-                    tool_output = self.promo_tool.invoke({})
-
-                    # Aracın sonucunu LLM'e göndererek nihai cevabı al.
-                    final_response = self.graph.invoke(
-                        {
-                            "messages": [
-                                ToolMessage(
-                                    content=json.dumps(tool_output),
-                                    tool_call_id=tool_call["id"],
-                                )
-                            ]
-                        },
-                        config=config,
-                    )
-                    return {
-                        "text": final_response["messages"][-1].content,
-                        "tool_called": tool_name,
-                    }
-
-            # 5. Eğer araç çağrılmadıysa, bu normal bir konuşma adımıdır.
-            return {"text": last_message.content, "tool_called": None}
+            return result
 
         except Exception as e:
             print(f"❌ Conversation error: {str(e)}")
-            # Hata durumunda da görüşmeyi güvenli bir şekilde sonlandır.
+            # Hata durumunda güvenli bir şekilde sonlandır
             return {
                 "text": "Sorry, something went wrong. Goodbye.",
-                "tool_called": "internal_end_conversation",
+                "should_end": True,
+                "tool_called": "error_end_conversation",
             }
 
     def generate_voice_response(

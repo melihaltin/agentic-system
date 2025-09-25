@@ -27,36 +27,6 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
     # Legacy agent for backward compatibility
     agent = AbandonedCartAgent(voice_service)
 
-    def detect_payload_type(payload: Dict[str, Any]) -> str:
-        """Detect the type of incoming payload"""
-        if not payload:
-            return "empty"
-
-        # Backend abandoned cart payload format (most specific)
-        # Check for the exact structure: agent + company + platforms + voice_config + metadata
-        if all(key in payload for key in ["agent", "company", "platforms"]) and any(
-            key in payload for key in ["voice_config", "metadata", "summary"]
-        ):
-            return "backend_abandoned_cart"
-
-        # Simpler backend format (agent + company)
-        if "agent" in payload and "company" in payload:
-            return "backend_abandoned_cart"
-
-        # Legacy API format
-        if "phone_number" in payload and "business_info" in payload:
-            return "legacy_api"
-
-        # Direct abandoned cart format
-        if "abandoned_carts" in payload:
-            return "abandoned_cart_direct"
-
-        # Generic format with customer info
-        if "customer" in payload or "agent" in payload:
-            return "generic"
-
-        return "unknown"
-
     # Serve audio files for ElevenLabs
     @app.route("/audio/<filename>")
     def serve_audio(filename):
@@ -152,7 +122,7 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
 
     @app.route("/webhook/outbound/process", methods=["POST"])
     def handle_outbound_process():
-        """Process user speech input using the AI-driven tool-calling logic."""
+        """Process user speech input using the AI-driven tool-calling logic - FIXED VERSION."""
         to_number = request.form.get("To")
         call_sid = request.form.get("CallSid")
         speech_result = request.form.get("SpeechResult", "")
@@ -171,15 +141,16 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
             current_agent = agent  # Varsayılan agent
             print("⚠️ Using default agent (thread not found)")
 
-        # --- YENİ MANTIK BURADA BAŞLIYOR ---
+        # --- DÜZELTILMIŞ YENİ MANTIK BURADA BAŞLIYOR ---
 
         # 1. Agent'tan yapılandırılmış cevap al
         agent_result = current_agent.process_conversation(speech_result, to_number)
         agent_response_text = agent_result["text"]
-        tool_called = agent_result["tool_called"]
+        should_end = agent_result.get("should_end", False)
+        tool_called = agent_result.get("tool_called")
 
         print(
-            f"🤖 Agent response: '{agent_response_text}' (Tool called: {tool_called})"
+            f"🤖 Agent response: '{agent_response_text}' (Should end: {should_end}, Tool called: {tool_called})"
         )
 
         # (Opsiyonel) Cevabı logla
@@ -188,8 +159,8 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
                 thread_context.thread_id, agent_response_text, is_agent=True
             )
 
-        # 2. Görüşmenin bitip bitmediğine AI'nın araç çağrısına göre karar ver
-        is_final = tool_called == "internal_end_conversation"
+        # 2. LangGraph'ın kendi conditional edge logic'ine göre karar ver
+        is_final = should_end
 
         # 3. Karara göre TwiML oluştur
         response = current_agent.generate_voice_response(
@@ -201,6 +172,9 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
         if is_final and thread_context:
             thread_manager.update_thread_status(
                 thread_context.thread_id, ThreadStatus.COMPLETED
+            )
+            print(
+                f"✅ Conversation ended. Thread {thread_context.thread_id} marked as completed."
             )
 
         return str(response), 200, {"Content-Type": "text/xml"}

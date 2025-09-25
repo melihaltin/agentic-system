@@ -26,6 +26,7 @@ import {
 import VoiceSelector from "./agent-config-modal/VoiceSelector";
 import LanguageSelector from "./agent-config-modal/LanguageSelector";
 import type { VoiceOption } from "@/types/admin.types";
+import { useAuthStore } from "@/store/auth";
 
 interface AgentCardProps {
   agent: AgentType;
@@ -47,6 +48,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
   isLoading = false,
 }) => {
   const [isTestOpen, setIsTestOpen] = useState(false);
+
   const [selectedVoice, setSelectedVoice] = useState<VoiceOption | undefined>(
     isVoiceAgent(agent) && "voice" in agent.settings
       ? (agent.settings as any).voice
@@ -85,10 +87,13 @@ const AgentCard: React.FC<AgentCardProps> = ({
   const buildMockPayload = () => {
     const now = new Date().toISOString();
 
+    const user = useAuthStore.getState().user;
+    const profile = useAuthStore.getState().profile;
+
     const mock = {
       agent: {
         id: "d6df8592-cde1-4526-ab49-e1f3ce9b9b48",
-        name: "Extremly Powerful Super Agent",
+        name: "IQRA - Abandoned Cart Recovery Agent",
         type: "abandoned_cart_recovery",
         template_slug: "ecommerce-abandoned-cart",
         is_configured: true,
@@ -99,7 +104,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
       },
       company: {
         id: "6d59b8da-8674-48d7-889d-8055a1d6e990",
-        name: "Melih Test Corp",
+        name: profile?.company?.company_name || "Demo Company",
         business_category: "e-commerce",
         phone_number: "+1234567890",
         website: null,

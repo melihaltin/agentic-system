@@ -34,7 +34,6 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Use getSession for more reliable cookie-based auth detection
   const { data: sessionData } = await supabase.auth.getSession();
   const user = sessionData?.session?.user ?? null;
 
@@ -46,23 +45,27 @@ export async function updateSession(request: NextRequest) {
     response.headers.delete("x-user-email");
   }
 
-  // Auth guards
   const url = request.nextUrl.clone();
   const locale = getLocaleFromPath(url.pathname);
 
-  console.log("Locale detected in middleware:", locale);
+  if (url.pathname === "/") {
+    const target = buildPath(locale, "/admin");
+    return {
+      response: NextResponse.redirect(new URL(target, request.url)),
+      user,
+    };
+  }
+
   const loginPath = buildPath(locale, "/login");
   const registerPath = buildPath(locale, "/register");
   const isAuthPage =
     url.pathname === loginPath || url.pathname === registerPath;
 
-  // Not authenticated: allow only login/register
   if (!user && !isAuthPage) {
     url.pathname = loginPath;
     return { response: NextResponse.redirect(url), user: null };
   }
 
-  // Authenticated: prevent access to login/register
   if (user && isAuthPage) {
     url.pathname = buildPath(locale, "/admin");
     return { response: NextResponse.redirect(url), user };

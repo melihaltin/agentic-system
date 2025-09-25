@@ -12,11 +12,14 @@ from agents.ecommerce.abandoned_cart_agent.agent import AbandonedCartAgent
 from services.voice_service import VoiceService
 from services.tts.elevenlabs import ElevenLabsTTS
 from core.thread_manager import get_thread_manager, ThreadStatus
+from flask_cors import CORS
 
 
 def create_webhook_server(voice_service: VoiceService) -> Flask:
     """Create Flask server for Twilio webhooks with thread support."""
     app = Flask(__name__)
+
+    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
     # Get thread manager instance
     thread_manager = get_thread_manager()
@@ -146,9 +149,7 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
         response.hangup()
 
         return str(response)
-    
-    
-    
+
     @app.route("/webhook/outbound/process", methods=["POST"])
     def handle_outbound_process():
         """Process user speech input using the AI-driven tool-calling logic."""
@@ -159,15 +160,17 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
         print(f"🎤 User response ({to_number}): '{speech_result}'")
 
         # Agent'ı ve thread'i bulma mantığı (değişmedi)
-        thread_context = thread_manager.get_thread_by_call_sid(call_sid) or thread_manager.get_thread_by_phone(to_number)
-        
+        thread_context = thread_manager.get_thread_by_call_sid(
+            call_sid
+        ) or thread_manager.get_thread_by_phone(to_number)
+
         if thread_context and thread_context.agent_instance:
             current_agent = thread_context.agent_instance
             # ... (Diğer context'e özel değişkenler)
         else:
-            current_agent = agent # Varsayılan agent
+            current_agent = agent  # Varsayılan agent
             print("⚠️ Using default agent (thread not found)")
-        
+
         # --- YENİ MANTIK BURADA BAŞLIYOR ---
 
         # 1. Agent'tan yapılandırılmış cevap al
@@ -175,7 +178,9 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
         agent_response_text = agent_result["text"]
         tool_called = agent_result["tool_called"]
 
-        print(f"🤖 Agent response: '{agent_response_text}' (Tool called: {tool_called})")
+        print(
+            f"🤖 Agent response: '{agent_response_text}' (Tool called: {tool_called})"
+        )
 
         # (Opsiyonel) Cevabı logla
         if thread_context:
@@ -184,21 +189,22 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
             )
 
         # 2. Görüşmenin bitip bitmediğine AI'nın araç çağrısına göre karar ver
-        is_final = (tool_called == 'internal_end_conversation')
-        
+        is_final = tool_called == "internal_end_conversation"
+
         # 3. Karara göre TwiML oluştur
         response = current_agent.generate_voice_response(
             text=agent_response_text,
             is_final=is_final,
-            gather_input=not is_final  # Görüşme bitmiyorsa girdi topla
+            gather_input=not is_final,  # Görüşme bitmiyorsa girdi topla
         )
 
         if is_final and thread_context:
-            thread_manager.update_thread_status(thread_context.thread_id, ThreadStatus.COMPLETED)
+            thread_manager.update_thread_status(
+                thread_context.thread_id, ThreadStatus.COMPLETED
+            )
 
-        return str(response), 200, {'Content-Type': 'text/xml'}
+        return str(response), 200, {"Content-Type": "text/xml"}
 
-    
     @app.route("/start-call", methods=["POST"])
     def start_call_endpoint():
         """API endpoint to start AI agent call with custom configuration"""

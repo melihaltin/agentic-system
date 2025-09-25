@@ -19,7 +19,17 @@ def create_webhook_server(voice_service: VoiceService) -> Flask:
     """Create Flask server for Twilio webhooks with thread support."""
     app = Flask(__name__)
 
-    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+    CORS(
+        app,
+        resources={
+            r"/*": {
+                "origins": [
+                    "http://localhost:3000",
+                    "https://agentic-system-sepia.vercel.app",
+                ]
+            }
+        },
+    )
 
     # Get thread manager instance
     thread_manager = get_thread_manager()

@@ -21,3 +21,4 @@ anyio
 pydantic
 python-dotenv
 pydantic-settings
+gotrue

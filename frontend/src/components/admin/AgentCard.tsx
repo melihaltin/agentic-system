@@ -76,11 +76,10 @@ const AgentCard: React.FC<AgentCardProps> = ({
     setTestResult(null);
   };
 
+  // Düzeltilmiş handleVoiceSelect fonksiyonu - sadece sesi değiştiriyor
   const handleVoiceSelect = (voice: VoiceOption) => {
     setSelectedVoice(voice);
-    if (voice?.language) {
-      setSelectedLanguage(voice.language);
-    }
+    // Dili otomatik değiştirmiyoruz
   };
 
   const buildMockPayload = () => {
@@ -182,6 +181,8 @@ const AgentCard: React.FC<AgentCardProps> = ({
       }
 
       const payload = buildMockPayload();
+
+      console.log("Test payload:", payload);
       const apiUrl =
         process.env.NEXT_PUBLIC_TEST_API_URL || "https://httpbin.org/post";
 

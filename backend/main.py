@@ -1,3 +1,4 @@
+from src.features.agents.services import elevenlabs_service
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.features.auth.router import router as auth_router

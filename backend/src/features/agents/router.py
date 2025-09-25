@@ -1,7 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 import logging
-from src.features.agents.service import elevenlabs_service, agent_service
+
+from src.features.agents.services.elevenlabs_service import elevenlabs_service
+from src.features.agents.services.agent_management_service import agent_service
+
 from src.features.agents.models import (
     AgentVoicesListResponse,
     SyncVoicesResponse,
@@ -163,7 +166,7 @@ async def toggle_agent_status(
 async def get_agent_integrations(company_id: str, agent_id: str):
     """Get integration configurations for an agent"""
     try:
-        from src.features.agents.service import IntegrationService
+        from src.features.agents.services.integration_service import IntegrationService
 
         integrations = await IntegrationService.get_agent_integrations(agent_id)
         return {"success": True, "integrations": integrations}

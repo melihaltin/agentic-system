@@ -4,21 +4,15 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { NextRequest } from "next/server";
 
 const intlMiddleware = createMiddleware({
-  // A list of all locales that are supported
   locales,
-
-  // Used when no locale matches
-  defaultLocale: "tr",
+  defaultLocale: "en",
 });
 
 export async function middleware(request: NextRequest) {
-  // First handle authentication
-  const response = await updateSession(request);
+  const { response } = await updateSession(request);
 
-  // Then handle internationalization
   const intlResponse = intlMiddleware(request);
 
-  // Merge headers from both middlewares
   if (intlResponse && response) {
     intlResponse.headers.forEach((value, key) => {
       response.headers.set(key, value);
@@ -29,6 +23,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Match only internationalized pathnames, exclude static files and API routes
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

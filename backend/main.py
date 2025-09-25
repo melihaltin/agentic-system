@@ -1,7 +1,11 @@
+from src.features.agents.services import elevenlabs_service
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.features.auth.router import router as auth_router
 from src.features.agents.router import voice_router, agent_router
+from src.features.polling.router import router as polling_router
+from src.features.integrations.router import router as integrations_router
+from src.features.abandoned_cart.router import router as abandoned_cart_router
 
 app = FastAPI(
     title="Team AI Backend API",
@@ -22,6 +26,9 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(voice_router)
 app.include_router(agent_router)
+app.include_router(polling_router)
+app.include_router(integrations_router)
+app.include_router(abandoned_cart_router)
 
 
 @app.get("/")

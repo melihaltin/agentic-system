@@ -4,10 +4,13 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Input, Button } from "@/components/ui";
+
+// Shadcn/ui bileşenlerini içe aktarın
+import { Label } from "@/components/ui/label";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useAuthStore } from "@/store/auth";
 import { LoginCredentials } from "@/types/auth.types";
+import { Button, Input } from "@/components/ui";
 
 const Login: React.FC = () => {
   const router = useRouter();
@@ -26,28 +29,24 @@ const Login: React.FC = () => {
 
   const [errors, setErrors] = useState<Partial<LoginCredentials>>({});
 
-  // Initialize auth store on component mount
+  // Auth store'u bileşen yüklendiğinde başlat
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Redirect if already logged in
+  // Eğer kullanıcı zaten giriş yapmışsa yönlendir
   useEffect(() => {
     if (user && !loading) {
-      console.log("User:", user);
       router.push(`/${locale}/admin`);
     }
   }, [user, loading, router, locale]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev: LoginCredentials) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Kullanıcı yazmaya başladığında hatayı temizle
     if (errors[name as keyof LoginCredentials]) {
-      setErrors((prev: Partial<LoginCredentials>) => ({
-        ...prev,
-        [name]: undefined,
-      }));
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
@@ -75,21 +74,21 @@ const Login: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const result = await login(formData);
-      console.log("Login successful, redirecting...", result);
+      await login(formData);
     } catch (error: any) {
       console.error("Login failed:", error);
+      // API'den gelen genel hatayı göster
       setErrors({
         email: error?.message || t("invalidCredentials"),
-        password: error?.message || t("invalidCredentials"),
       });
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      {/* Language Switcher */}
+      {/* Dil Değiştirici */}
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
@@ -106,27 +105,45 @@ const Login: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <Input
-              label={t("email")}
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              error={errors.email}
-              autoComplete="email"
-              required
-            />
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="email">{t("email")}</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                autoComplete="email"
+                className={
+                  errors.email
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
+              />
+              {errors.email && (
+                <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+              )}
+            </div>
 
-            <Input
-              label={t("password")}
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              error={errors.password}
-              autoComplete="current-password"
-              required
-            />
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="password">{t("password")}</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                autoComplete="current-password"
+                className={
+                  errors.password
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
+              />
+              {errors.password && (
+                <p className="text-sm text-red-500 mt-1">{errors.password}</p>
+              )}
+            </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -154,12 +171,7 @@ const Login: React.FC = () => {
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              isLoading={isLoading}
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? t("loggingIn") : t("loginButton")}
             </Button>
 

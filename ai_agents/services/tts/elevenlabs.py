@@ -19,7 +19,9 @@ class ElevenLabsTTS(TTSProvider):
     def generate_speech(self, text: str, **kwargs) -> bytes:
         """Generate speech with ElevenLabs API"""
         voice_id = kwargs.get("voice_id", self.voice_id)
-        model_id = kwargs.get("model_id", "eleven_monolingual_v1")
+        model_id = kwargs.get("model_id", "eleven_multilingual_v2")
+
+        print(f"Generating speech with voice_id: {voice_id}, model_id: {model_id}")
 
         url = f"{self.base_url}/text-to-speech/{voice_id}"
 

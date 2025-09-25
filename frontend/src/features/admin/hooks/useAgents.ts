@@ -20,11 +20,6 @@ export const useAgents = (businessCategory?: string) => {
       return profile.company.id;
     }
 
-    // Temporary fix: If user ID matches known user, return correct company ID
-    if (profile?.id === "2e30bce3-9ba0-4180-b624-559e4e59e600") {
-      return "3a9e32fa-d4f4-4da8-8c93-f1f931f2924d";
-    }
-
     // If profile.company.id is not available but we have user ID,
     // we need to fetch the company profile from backend
     if (profile?.id) {
@@ -58,6 +53,9 @@ export const useAgents = (businessCategory?: string) => {
   const loadAgentTemplates = async (sectorId: string) => {
     try {
       const templates = await AgentService.loadAgentTemplates(sectorId);
+
+      console.log("Loaded templates for sector", sectorId, templates);
+
       setAvailableTemplates(templates);
       return templates;
     } catch (err) {
@@ -116,6 +114,25 @@ export const useAgents = (businessCategory?: string) => {
     companyAgents: any[],
     templates: any[] = availableTemplates
   ): AgentType[] => {
+    const normalizeLanguage = (lang: string | undefined): string => {
+      if (!lang) return "tr-TR";
+      const lower = lang.toLowerCase();
+      // Map common names to ISO codes
+      if (lower === "turkish" || lower === "türkçe" || lower === "tr")
+        return "tr-TR";
+      if (lower === "english" || lower === "en" || lower === "ingilizce")
+        return "en-US";
+      if (lower === "spanish" || lower === "es" || lower === "español")
+        return "es-ES";
+      if (lower === "german" || lower === "de" || lower === "deutsch")
+        return "de-DE";
+      if (lower === "french" || lower === "fr" || lower === "français")
+        return "fr-FR";
+      // If already looks like an ISO code (xx-XX), return as is
+      if (/^[a-z]{2}-[A-Z]{2}$/.test(lang)) return lang;
+      return "en-US";
+    };
+
     return companyAgents.map((agent) => {
       // Template bilgilerini bul
       const templateData = templates.find(
@@ -213,8 +230,9 @@ export const useAgents = (businessCategory?: string) => {
             agent.custom_prompt ||
             agent.template_prompt ||
             templateData?.default_prompt,
-          language:
-            agent.language || templateData?.default_language || "Turkish",
+          language: normalizeLanguage(
+            agent.language || templateData?.default_language || "tr-TR"
+          ),
           enableAnalytics: agent.enable_analytics !== false,
           integrationConfigs: {
             ...templateData?.default_integrations,
@@ -231,14 +249,16 @@ export const useAgents = (businessCategory?: string) => {
               templateIcon: templateData.icon,
               templateAgentType: templateData.agent_type,
               templateRequiredIntegrations: templateData.required_integrations,
-              ...agent.template_info && { originalTemplateInfo: agent.template_info },
+              ...(agent.template_info && {
+                originalTemplateInfo: agent.template_info,
+              }),
             }
           : agent.template_info || undefined,
       };
     });
   };
 
-  const activateAgent = async (agentTemplateId: string, config?: any) => {
+  const activateAgent = async (agentTemplateId: string, config: any = {}) => {
     const companyId = await getCompanyId();
     if (!companyId) {
       setError("Company ID not found");
@@ -246,23 +266,25 @@ export const useAgents = (businessCategory?: string) => {
     }
 
     try {
-      // Template bilgilerini al
       const template = availableTemplates.find((t) => t.id === agentTemplateId);
 
-      // Config'e template'den gelen bilgileri ekle
-      const enhancedConfig = {
+      // Prepare configuration with integration data
+      const activationConfig = {
         custom_name: config?.custom_name || template?.name,
         custom_prompt: config?.custom_prompt || template?.default_prompt,
-        ...config,
+        selected_voice_id: config?.selected_voice_id,
+        language: config?.language,
+        configuration: config?.configuration || {},
+        integrations: config?.integrationConfigs || {},
       };
 
       const activatedAgent = await AgentService.activateAgent(
         companyId,
         agentTemplateId,
-        enhancedConfig
+        activationConfig
       );
+
       if (activatedAgent) {
-        // Reload company agents to get updated list
         await loadCompanyAgents();
       }
       return activatedAgent;
@@ -279,33 +301,24 @@ export const useAgents = (businessCategory?: string) => {
   ) => {
     const companyId = await getCompanyId();
 
-    console.log("Company ID:", companyId);
     if (!companyId) {
       setError("Company ID not found");
       return;
     }
 
     try {
-      console.log(
-        "Toggling agent:",
-        agentId,
-        "Active:",
-        isActive,
-        "Template ID:",
-        agentTemplateId
-      );
-
       // If this is a template (agentTemplateId provided) and we want to activate it
       if (agentTemplateId && isActive) {
-        console.log("This is a template, activating first...");
         const activatedAgent = await AgentService.activateAgent(
           companyId,
           agentTemplateId,
-          { custom_name: agents.find((a) => a.id === agentId)?.name }
+          {
+            custom_name: agents.find((a) => a.id === agentId)?.name,
+            configuration: {},
+          }
         );
 
         if (activatedAgent) {
-          console.log("Template activated successfully:", activatedAgent);
           // Reload all agents to get the updated list
           await loadCompanyAgents();
           return;
@@ -335,15 +348,11 @@ export const useAgents = (businessCategory?: string) => {
             agent.id === agentId ? { ...agent, isActive } : agent
           )
         );
-
-        console.log("Agent toggled successfully:", updatedAgent);
       } else {
         throw new Error("No response from server");
       }
     } catch (err) {
-      console.error("Toggle agent error:", err);
       setError(err instanceof Error ? err.message : "Failed to update agent");
-
       // Reload data to ensure consistency
       await loadCompanyAgents();
     }

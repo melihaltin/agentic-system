@@ -14,9 +14,20 @@ const LanguageSwitcher: React.FC = () => {
   const pathnameWithoutLocale =
     pathname.replace(`/${currentLocale}`, "") || "/";
 
-  const languages = {
-    tr: { name: "Türkçe", flag: "🇹🇷" },
-    en: { name: "English", flag: "🇺🇸" },
+  const getLanguageName = (code: string) => {
+    try {
+      // Use the language subtag for naming (e.g., "en" from "en-US")
+      const lang = code.split("-")[0];
+      const dn = new Intl.DisplayNames(["en"], { type: "language" });
+      return dn.of(lang) || code;
+    } catch {
+      return code;
+    }
+  };
+
+  const getFlagEmoji = (_code: string) => {
+    // Generic fallback without hardcoding per-locale flags
+    return "🌐";
   };
 
   return (
@@ -32,8 +43,8 @@ const LanguageSwitcher: React.FC = () => {
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
             }`}
           >
-            <span className="mr-1">{languages[locale].flag}</span>
-            {languages[locale].name}
+            <span className="mr-1">{getFlagEmoji(locale)}</span>
+            {getLanguageName(locale as string)}
           </Link>
         ))}
       </div>

@@ -1,7 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 import logging
-from src.features.agents.service import elevenlabs_service, agent_service
+
+from src.features.agents.services.elevenlabs_service import elevenlabs_service
+from src.features.agents.services.agent_management_service import agent_service
+
 from src.features.agents.models import (
     AgentVoicesListResponse,
     SyncVoicesResponse,
@@ -116,13 +119,14 @@ async def get_company_agents(company_id: str):
 async def activate_agent(
     company_id: str, agent_template_id: str, config: Optional[dict] = None
 ):
-    """Activate an agent template for a company"""
+    """Activate an agent template for a company with configuration"""
     try:
         agent = await agent_service.activate_agent_for_company(
             company_id, agent_template_id, config or {}
         )
         return {"success": True, "agent": agent}
     except Exception as e:
+        logger.error(f"Failed to activate agent: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to activate agent: {str(e)}"
         )
@@ -130,11 +134,12 @@ async def activate_agent(
 
 @agent_router.put("/company/{company_id}/agents/{agent_id}")
 async def update_company_agent(company_id: str, agent_id: str, updates: dict):
-    """Update company agent configuration"""
+    """Update company agent configuration and integrations"""
     try:
         agent = await agent_service.update_company_agent(company_id, agent_id, updates)
         return {"success": True, "agent": agent}
     except Exception as e:
+        logger.error(f"Failed to update agent: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update agent: {str(e)}")
 
 
@@ -142,30 +147,34 @@ async def update_company_agent(company_id: str, agent_id: str, updates: dict):
 async def toggle_agent_status(
     company_id: str, agent_id: str, request: ActivateAgentRequest
 ):
-    """Activate or deactivate an agent"""
+    """Toggle agent active/inactive status"""
     try:
-        logger.info(f"Toggle agent - Company ID: {company_id}, Agent ID: {agent_id}, Active: {request.is_active}")
-        
-        if request.is_active:
-            # Activate
-            agent = await agent_service.update_company_agent(
-                company_id, agent_id, {"is_active": True}
-            )
-            print(f"Activated agent result: {agent}")
-            logger.info(f"Activated agent result: {agent}")
-        else:
-            # Deactivate
-            agent = await agent_service.deactivate_agent_for_company(
-                company_id, agent_id
-            )
-            logger.info(f"Deactivated agent result: {agent}")
-            if not agent:
-                raise HTTPException(status_code=404, detail="Agent not found")
+        agent = await agent_service.toggle_agent_status(
+            company_id, agent_id, request.is_active
+        )
+
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
 
         return {"success": True, "agent": agent}
     except Exception as e:
         logger.error(f"Error toggling agent: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to toggle agent: {str(e)}")
+
+
+@agent_router.get("/company/{company_id}/agents/{agent_id}/integrations")
+async def get_agent_integrations(company_id: str, agent_id: str):
+    """Get integration configurations for an agent"""
+    try:
+        from src.features.agents.services.integration_service import IntegrationService
+
+        integrations = await IntegrationService.get_agent_integrations(agent_id)
+        return {"success": True, "integrations": integrations}
+    except Exception as e:
+        logger.error(f"Failed to get agent integrations: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get agent integrations: {str(e)}"
+        )
 
 
 @agent_router.get("/integrations")

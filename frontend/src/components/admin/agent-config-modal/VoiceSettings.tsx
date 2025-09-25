@@ -1,5 +1,9 @@
+import React from "react";
 import { VoiceOption } from "@/types/admin.types";
 import VoiceSelector from "./VoiceSelector";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import LanguageSelector from "./LanguageSelector";
 
 interface VoiceSettingsProps {
   formData: {
@@ -30,44 +34,55 @@ export const VoiceSettings: React.FC<VoiceSettingsProps> = ({
     }
   };
 
+  const handleLanguageChange = (value: string) => {
+    onChange({
+      target: { name: "language", value, type: "select" },
+    });
+  };
+
+  const handleCustomPromptChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    onChange(e);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Voice Selector */}
       <VoiceSelector
         selectedVoice={voiceSettings?.voice}
         onVoiceSelect={handleVoiceSelect}
       />
 
+      {/* Language Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+        <div className="space-y-2">
+          <Label htmlFor="language" className="text-sm font-medium">
             Language
-          </label>
-          <select
-            name="language"
-            value={voiceSettings?.language || "tr-TR"}
-            onChange={onChange}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400"
-          >
-            <option value="tr-TR">Turkish</option>
-            <option value="en-US">English (US)</option>
-            <option value="en-GB">English (UK)</option>
-          </select>
+          </Label>
+          <LanguageSelector
+            value={voiceSettings?.language || "en-US"}
+            onValueChange={handleLanguageChange}
+            placeholder="Select a language"
+          />
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
+      {/* Custom Prompt */}
+      <div className="space-y-2">
+        <Label htmlFor="customPrompt" className="text-sm font-medium">
           Custom Prompt
-        </label>
-        <textarea
+        </Label>
+        <Textarea
+          id="customPrompt"
           name="customPrompt"
           value={voiceSettings?.customPrompt || ""}
-          onChange={onChange}
+          onChange={handleCustomPromptChange}
           rows={4}
           placeholder="Enter custom instructions for this agent..."
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
+          className="resize-none"
         />
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           Provide specific instructions to customize how this agent should
           behave.
         </p>
@@ -76,4 +91,4 @@ export const VoiceSettings: React.FC<VoiceSettingsProps> = ({
   );
 };
 
-export default VoiceSelector;
+export default VoiceSettings;

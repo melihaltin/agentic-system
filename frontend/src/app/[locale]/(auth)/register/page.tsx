@@ -166,48 +166,83 @@ const BasicInfoStep = React.memo<{
       {t("basicInfo.title")}
     </h2>
 
-    <Input
-      label={t("basicInfo.businessName")}
-      name="businessName"
-      value={formData.businessName}
-      onChange={(e) => onInputChange("businessName", e.target.value)}
-      error={errors.businessName}
-      placeholder={t("basicInfo.businessNamePlaceholder")}
-      required
-    />
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t("basicInfo.businessName")} <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="businessName"
+          value={formData.businessName}
+          onChange={(e) => onInputChange("businessName", e.target.value)}
+          placeholder={t("basicInfo.businessNamePlaceholder")}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            errors.businessName ? "border-red-500" : "border-gray-300"
+          }`}
+        />
+        {errors.businessName && (
+          <p className="mt-1 text-sm text-red-600">{errors.businessName}</p>
+        )}
+      </div>
 
-    <Input
-      label={t("basicInfo.phoneNumber")}
-      name="phoneNumber"
-      type="tel"
-      value={formData.phoneNumber}
-      onChange={(e) => onInputChange("phoneNumber", e.target.value)}
-      error={errors.phoneNumber}
-      placeholder={t("basicInfo.phoneNumberPlaceholder")}
-      required
-    />
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t("basicInfo.phoneNumber")} <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="tel"
+          name="phoneNumber"
+          value={formData.phoneNumber}
+          onChange={(e) => onInputChange("phoneNumber", e.target.value)}
+          placeholder={t("basicInfo.phoneNumberPlaceholder")}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            errors.phoneNumber ? "border-red-500" : "border-gray-300"
+          }`}
+        />
+        {errors.phoneNumber && (
+          <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
+        )}
+      </div>
 
-    <Input
-      label={t("basicInfo.email")}
-      name="email"
-      type="email"
-      value={formData.email}
-      onChange={(e) => onInputChange("email", e.target.value)}
-      error={errors.email}
-      placeholder={t("basicInfo.emailPlaceholder")}
-      required
-    />
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t("basicInfo.email")} <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={(e) => onInputChange("email", e.target.value)}
+          placeholder={t("basicInfo.emailPlaceholder")}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            errors.email ? "border-red-500" : "border-gray-300"
+          }`}
+        />
+        {errors.email && (
+          <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+        )}
+      </div>
 
-    <Input
-      label="Password"
-      name="password"
-      type="password"
-      value={formData.password}
-      onChange={(e) => onInputChange("password", e.target.value)}
-      error={errors.password}
-      placeholder="Enter a secure password"
-      required
-    />
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Password <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={(e) => onInputChange("password", e.target.value)}
+          placeholder="Enter a secure password"
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            errors.password ? "border-red-500" : "border-gray-300"
+          }`}
+        />
+        {errors.password && (
+          <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+        )}
+      </div>
+    </div>
   </div>
 ));
 
@@ -230,18 +265,26 @@ const CategoryStep = React.memo<{
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {businessCategories.map((category) => (
-        <Card
+        <div
           key={category.value}
-          isSelected={formData.category === category.value}
           onClick={() => onCategoryChange(category.value)}
-          className="text-center cursor-pointer hover:shadow-md transition-shadow"
+          className={`
+            p-6 border rounded-lg cursor-pointer hover:shadow-md transition-all duration-200
+            ${
+              formData.category === category.value
+                ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
+                : "border-gray-200 hover:border-gray-300"
+            }
+          `}
         >
-          <div className="text-4xl mb-3">{category.icon}</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {category.label}
-          </h3>
-          <p className="text-sm text-gray-600">{category.description}</p>
-        </Card>
+          <div className="text-center">
+            <div className="text-4xl mb-3">{category.icon}</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {category.label}
+            </h3>
+            <p className="text-sm text-gray-600">{category.description}</p>
+          </div>
+        </div>
       ))}
     </div>
 
@@ -250,6 +293,47 @@ const CategoryStep = React.memo<{
     )}
   </div>
 ));
+
+// Simple StepProgress component if not available
+const SimpleStepProgress: React.FC<{
+  steps: Array<{
+    id: number;
+    title: string;
+    description: string;
+    isCompleted: boolean;
+    isActive: boolean;
+  }>;
+}> = ({ steps }) => (
+  <div className="flex justify-between mb-8">
+    {steps.map((step, index) => (
+      <div key={step.id} className="flex items-center flex-1">
+        <div
+          className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+            step.isCompleted
+              ? "bg-green-600 text-white"
+              : step.isActive
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-600"
+          }`}
+        >
+          {step.id}
+        </div>
+        <div className="ml-3 flex-1">
+          <p
+            className={`text-sm font-medium ${
+              step.isActive ? "text-blue-600" : "text-gray-600"
+            }`}
+          >
+            {step.title}
+          </p>
+        </div>
+        {index < steps.length - 1 && (
+          <div className="flex-1 h-0.5 bg-gray-200 mx-4" />
+        )}
+      </div>
+    ))}
+  </div>
+);
 
 // Main Component
 const BusinessRegistration: React.FC = () => {
@@ -275,25 +359,25 @@ const BusinessRegistration: React.FC = () => {
   const businessCategories = useMemo(
     () => [
       {
-        value: "e-commerce" as const,
+        value: "e-commerce" as BusinessCategory,
         label: t("category.ecommerce"),
         icon: "🛒",
         description: t("category.ecommerceDesc"),
       },
       {
-        value: "car-rental" as const,
+        value: "car-rental" as BusinessCategory,
         label: t("category.carRental"),
         icon: "🚗",
         description: t("category.carRentalDesc"),
       },
       {
-        value: "restaurant" as const,
+        value: "restaurant" as BusinessCategory,
         label: t("category.restaurant"),
         icon: "🍽️",
         description: t("category.restaurantDesc"),
       },
       {
-        value: "service-based" as const,
+        value: "service-based" as BusinessCategory,
         label: t("category.serviceBased"),
         icon: "⚙️",
         description: t("category.serviceBasedDesc"),
@@ -326,14 +410,7 @@ const BusinessRegistration: React.FC = () => {
   const handleCategoryChange = useCallback(
     (category: BusinessCategory) => {
       handleInputChange("category", category);
-      handleInputChange("platform", ""); // Reset platform when category changes
-    },
-    [handleInputChange]
-  );
-
-  const handlePlatformChange = useCallback(
-    (platform: string) => {
-      handleInputChange("platform", platform);
+      console.log("Category selected:", category); // Debug log
     },
     [handleInputChange]
   );
@@ -397,42 +474,41 @@ const BusinessRegistration: React.FC = () => {
             <p className="text-center text-gray-600">{t("subtitle")}</p>
           </div>
 
-          <StepProgress steps={steps} />
+          <SimpleStepProgress steps={steps} />
 
           <div className="mt-8">
             {renderStepContent}
 
             <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8 pt-6 border-t border-gray-200">
-              <Button
+              <button
                 onClick={handlePrevious}
                 disabled={currentStep === STEP_IDS.BASIC_INFO}
-                className={`px-6 order-2 sm:order-1 ${
+                className={`px-6 py-2 rounded-md font-medium transition-colors order-2 sm:order-1 ${
                   currentStep === STEP_IDS.BASIC_INFO
                     ? "invisible"
-                    : "bg-gray-600 hover:bg-gray-700"
+                    : "bg-gray-600 hover:bg-gray-700 text-white"
                 }`}
               >
                 {t("navigation.back")}
-              </Button>
+              </button>
 
               {currentStep < TOTAL_STEPS ? (
-                <Button
+                <button
                   onClick={handleNextClick}
-                  className="px-8 order-1 sm:order-2"
+                  className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors order-1 sm:order-2"
                 >
                   {t("navigation.next")}
-                </Button>
+                </button>
               ) : (
-                <Button
+                <button
                   onClick={handleSubmitClick}
-                  isLoading={isLoading}
                   disabled={isLoading}
-                  className="px-8 bg-green-600 hover:bg-green-700 order-1 sm:order-2"
+                  className="px-8 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-md font-medium transition-colors order-1 sm:order-2"
                 >
                   {isLoading
                     ? t("navigation.completing")
                     : t("navigation.complete")}
-                </Button>
+                </button>
               )}
             </div>
           </div>
@@ -453,5 +529,9 @@ const BusinessRegistration: React.FC = () => {
     </div>
   );
 };
+
+// Add displayName for debugging
+BasicInfoStep.displayName = "BasicInfoStep";
+CategoryStep.displayName = "CategoryStep";
 
 export default BusinessRegistration;

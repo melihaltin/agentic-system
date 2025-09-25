@@ -1,0 +1,23 @@
+# Root dockerignore
+.git
+.gitignore
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.log
+**/.pytest_cache
+**/.mypy_cache
+**/.DS_Store
+node_modules
+.build
+.dist
+.env
+.env.*
+# Local virtualenvs
+**/venv
+**/.venv
+ai_agents/agent-env
+# Editor
+.vscode
+.idea
